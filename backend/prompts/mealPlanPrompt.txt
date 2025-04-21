@@ -1,0 +1,95 @@
+Please create a personalized meal plan for a user with the following details:
+
+Age: {{age}}
+Weight: {{weight}} kg
+Height: {{height}} cm
+Gender: {{gender}}
+Activity Level: {{activityLevel}}
+Fitness Goal: {{fitnessGoal}}
+Diet Type: {{dietType}}
+Restrictions & Allergies: {{restrictionsAndAllergies}}
+Meals Per Day: {{mealsPerDay}}
+Plan Duration: {{planDuration}} days
+
+IMPORTANT DIETARY GUIDELINES:
+1. For vegetarian diets (dietType = "veg"), include only vegetarian foods
+2. For non-vegetarian diets (dietType = "non-veg"), include both vegetarian and non-vegetarian foods
+3. For vegan diets (dietType = "vegan"), exclude all animal products including dairy and honey
+4. DO NOT include beef in any meal plans regardless of diet type
+5. Focus on Indian cuisine and locally available ingredients
+6. Strictly avoid any ingredients listed in the restrictions and allergies
+
+FITNESS GOAL GUIDELINES:
+1. For weight loss: Focus on lower-calorie, high-protein, high-fiber meals with controlled carbohydrates
+2. For weight gain: Include calorie-dense, nutrient-rich foods with adequate protein 
+3. For muscle building: Emphasize protein-rich foods and balanced macronutrients
+4. For maintenance: Create balanced meals with moderate portions
+
+Based on these details, generate a complete meal plan that includes the specified number of meals per day, typically distributed as:
+1. Breakfast
+2. Lunch
+3. Dinner
+4. Snacks (if mealsPerDay > 3)
+
+For each meal, provide:
+- Type (Breakfast/Lunch/Dinner/Snack)
+- Dish name (focusing on Indian cuisine)
+- Description (including key health benefits related to the user's fitness goal)
+- Nutrition information (approximate calories, protein, carbs, and fat)
+
+The response should be formatted in the following JSON structure:
+
+{
+  "days": [
+    {
+      "dayNumber": 1,
+      "meals": [
+        {
+          "type": "Breakfast",
+          "dishName": "Example Indian Breakfast",
+          "description": "Description of breakfast with health benefits",
+          "nutrition": {
+            "calories": 300,
+            "protein": 15,
+            "carbs": 40,
+            "fat": 10
+          }
+        },
+        {
+          "type": "Lunch",
+          "dishName": "Example Indian Lunch",
+          "description": "Description of lunch with health benefits",
+          "nutrition": {
+            "calories": 450,
+            "protein": 25,
+            "carbs": 55,
+            "fat": 15
+          }
+        },
+        {
+          "type": "Dinner",
+          "dishName": "Example Indian Dinner",
+          "description": "Description of dinner with health benefits",
+          "nutrition": {
+            "calories": 400,
+            "protein": 20,
+            "carbs": 45,
+            "fat": 12
+          }
+        },
+        {
+          "type": "Snack",
+          "dishName": "Example Indian Snack",
+          "description": "Description of snack with health benefits",
+          "nutrition": {
+            "calories": 150,
+            "protein": 8,
+            "carbs": 15,
+            "fat": 6
+          }
+        }
+      ]
+    },
+    // Repeat for each day up to planDuration
+  ]
+} 
