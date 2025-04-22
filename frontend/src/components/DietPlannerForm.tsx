@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { ActivitySquare, Scale, Ruler, UserCircle2, Calendar, Target, Dumbbell, ArrowRight } from 'lucide-react';
+import { ActivitySquare, Scale, Ruler, UserCircle2, Calendar, Target, Dumbbell, ArrowRight, Utensils } from 'lucide-react';
 
 // API configuration
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -19,7 +19,8 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
     gender: 'male',
     activityLevel: 'moderately-active',
     goal: 'weight-loss',
-    planDuration: '7'
+    planDuration: '7',
+    foodType: 'both'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +29,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
   const [step, setStep] = useState(1);
   const totalSteps = 2;
 
-  // Fetch user profile data to pre-fill the form
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -46,7 +46,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
 
         const profile = response.data;
         
-        // Only pre-fill if the profile contains the necessary data
         if (profile && profile.age && profile.weight && profile.height) {
           setUserProfile(profile);
           
@@ -55,12 +54,12 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
             age: profile.age.toString(),
             weight: profile.weight.toString(),
             height: profile.height.toString(),
-            gender: profile.gender || prev.gender
+            gender: profile.gender || prev.gender,
+            foodType: profile.foodPreference || prev.foodType
           }));
         }
       } catch (err) {
         console.error('Error fetching user profile:', err);
-        // Just continue with empty form, don't show error
       }
     };
 
@@ -69,7 +68,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    // Clear error when user starts typing
     if (error) setError('');
     
     setFormData(prev => ({
@@ -95,7 +93,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         return false;
       }
       
-      // Additional validation for ranges
       const age = parseInt(formData.age);
       const weight = parseInt(formData.weight);
       const height = parseInt(formData.height);
@@ -121,7 +118,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
 
   const nextStep = () => {
     if (!validateStep(step)) return;
-    
     setStep(prev => Math.min(prev + 1, totalSteps));
   };
 
@@ -133,7 +129,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Final validation before submission
     if (!validateStep(step)) return;
     
     setLoading(true);
@@ -141,7 +136,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
     setStatusMessage('Generating your personalized meal plan... This may take a moment.');
 
     try {
-      // Convert string values to numbers
       const dietPlanParams = {
         age: parseInt(formData.age),
         weight: parseInt(formData.weight),
@@ -149,17 +143,16 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         gender: formData.gender,
         activityLevel: formData.activityLevel,
         goal: formData.goal,
-        planDuration: parseInt(formData.planDuration)
+        planDuration: parseInt(formData.planDuration),
+        foodType: formData.foodType
       };
 
-      // Get token from localStorage
       const token = localStorage.getItem('neutroToken');
       if (!token) {
         navigate('/login');
         return;
       }
 
-      // Make API request to generate diet plan
       const response = await axios.post(
         `${API_BASE_URL}/diet-plans`,
         dietPlanParams,
@@ -168,14 +161,12 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          timeout: 120000 // 120 second timeout (increased for more complex plans)
+          timeout: 120000
         }
       );
 
-      // Clear the status message
       setStatusMessage('');
 
-      // Call the callback with the generated plan
       if (response.data && response.data.dietPlan) {
         onPlanGenerated(response.data.dietPlan);
       } else {
@@ -382,6 +373,25 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
                   </select>
                   <p className="text-xs text-gray-500">Longer plans may take more time to generate</p>
                 </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="foodType" className="flex items-center text-sm font-medium text-gray-700">
+                    <Utensils className="mr-2 h-4 w-4 text-teal-500" />
+                    Food Preference <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    id="foodType"
+                    name="foodType"
+                    value={formData.foodType}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  >
+                    <option value="veg">Vegetarian</option>
+                    <option value="non-veg">Non-Vegetarian</option>
+                    <option value="both">Both (Vegetarian + Non-Veg)</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="flex justify-between pt-4">
@@ -412,7 +422,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
 
   return (
     <div className="max-w-4xl mx-auto border rounded-lg shadow-lg bg-white">
-      {/* Error message */}
       {error && (
         <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start">
           <svg className="h-5 w-5 text-red-400 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -422,7 +431,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         </div>
       )}
       
-      {/* Status/loading message */}
       {statusMessage && (
         <div className="mx-6 mt-6 p-4 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg flex items-center justify-between">
           <span>{statusMessage}</span>
@@ -430,7 +438,6 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         </div>
       )}
       
-      {/* Progress bar */}
       <div className="px-6 pt-6">
         <div className="w-full bg-gray-200 rounded-full h-2.5">
           <div 
@@ -441,14 +448,12 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         <p className="text-right text-sm text-gray-500 mt-1">Step {step} of {totalSteps}</p>
       </div>
       
-      {/* Form content */}
       <div className="p-6">
         <form onSubmit={handleSubmit}>
           {renderStepContent()}
         </form>
       </div>
       
-      {/* Footer */}
       <div className="px-6 py-4 bg-gray-50 rounded-b-lg">
         <p className="text-xs text-gray-500 text-center">
           Your data is securely processed to create a personalized nutrition plan tailored to your specific needs.

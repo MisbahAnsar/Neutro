@@ -73,6 +73,11 @@ const dietPlanSchema = new mongoose.Schema({
     min: 1,
     max: 30 // Limit to 30 days max for performance reasons
   },
+  foodType: {
+    type: String,
+    enum: ['veg', 'non-veg', 'both'], // Allow only these values
+    required: true // Making it mandatory
+  },
   dailyCalories: {
     type: Number,
     required: true

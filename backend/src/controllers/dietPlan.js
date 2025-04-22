@@ -39,7 +39,7 @@ const generateDietPlan = async (req, res) => {
     // Extract parameters from request body
     const { 
       age, weight, height, gender, activityLevel, goal, 
-      planDuration, fitnessGoal, dietType, restrictionsAndAllergies, mealsPerDay 
+      planDuration, fitnessGoal, dietType, restrictionsAndAllergies, mealsPerDay, foodType
     } = req.body;
     
     // Validation
@@ -86,6 +86,20 @@ const generateDietPlan = async (req, res) => {
       });
     }
 
+    // Validate foodType
+    const validFoodTypes = ['veg', 'non-veg', 'both'];
+    if (!validFoodTypes.includes(foodType)) {
+      return res.status(400).json({
+        message: 'Invalid foodType',
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          details: 'foodType must be one of "veg", "non-veg", or "both"',
+          field: 'foodType',
+          validOptions: validFoodTypes
+        }
+      });
+    }
+
     // Calculate daily calorie needs and macros based on user parameters
     const bmr = calculateBMR(weight, height, age, gender);
     const tdee = calculateTDEE(bmr, activityLevel);
@@ -105,6 +119,7 @@ const generateDietPlan = async (req, res) => {
       const mealPlanParams = {
         age, weight, height, gender, activityLevel, fitnessGoal: fitnessGoal || goal,
         dietType: dietType || 'non-veg',
+        foodType: foodType,  // Pass foodType here
         restrictionsAndAllergies: restrictionsAndAllergies || [],
         mealsPerDay: mealsPerDay || 3,
         planDuration: planDuration || 7
@@ -144,7 +159,8 @@ const generateDietPlan = async (req, res) => {
           planDuration || 7, 
           [], 
           mealsPerDay || 3,
-          dietType || 'non-veg'
+          dietType || 'non-veg',
+          foodType // Use foodType in fallback data generation if needed
         );
       } else {
         // For other types of errors, propagate the error
@@ -171,7 +187,7 @@ const generateDietPlan = async (req, res) => {
       });
     }
     
-    // Create the diet plan document with all information
+    // Create the diet plan document with all information, including foodType
     const dietPlan = new DietPlan({
       userId,
       age,
@@ -183,6 +199,7 @@ const generateDietPlan = async (req, res) => {
       planDuration: planDuration || days.length,
       dailyCalories,
       dailyMacros,
+      foodType,  // Include foodType in the diet plan data
       days
     });
   
@@ -236,6 +253,7 @@ const generateDietPlan = async (req, res) => {
     });
   }
 };
+
 
 /**
  * Get the user's latest diet plan
