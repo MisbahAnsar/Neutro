@@ -34,6 +34,7 @@ const Sidebar = () => {
     { name: 'Progress', path: '/progress', icon: <BarChart size={20} /> },
     { name: 'Calendar', path: '/calendar', icon: <Calendar size={20} /> },
     { name: 'Reports', path: '/reports', icon: <FileText size={20} /> },
+    { name: 'Community Wall', path: '/reports', icon: <FileText size={20} /> },
   ];
 
   const bottomItems = [

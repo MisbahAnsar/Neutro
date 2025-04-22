@@ -4,8 +4,10 @@ const cors = require('cors');
 const routes = require('./routes');
 const middleware = require('./middleware');
 require('dotenv').config();
+const postRoutes = require('./routes/posts');
 
 const app = express();
+// app.use('/api', routes);
 
 // MongoDB connection with improved options
 mongoose.connect(process.env.MONGODB_URI, {
@@ -44,6 +46,7 @@ app.use(middleware.logger);
 
 // Routes
 app.use('/api', routes);
+app.use('/api/posts', postRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {

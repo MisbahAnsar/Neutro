@@ -45,6 +45,32 @@ router.get('/diet-plans/days/:dayNumber', auth, getDietPlanDay);
 router.get('/diet-plans', auth, getAllDietPlans);
 router.post('/diet-plans/track-meal', auth, trackMeal);
 
+router.get('/try/:id', async (req, res) => {
+  const DietPlan = require('../models/dietPlan'); // adjust if path is different
+  try {
+    const plan = await DietPlan.findById(req.params.id);
+    if (!plan) {
+      return res.status(404).json({ message: 'Diet plan not found' });
+    }
+
+    const mealsByDay = plan.days.map(day => ({
+      dayNumber: day.dayNumber,
+      meals: day.meals.map(meal => ({
+        id: meal._id,
+        type: meal.type,
+        dishName: meal.dishName,
+        description: meal.description
+      }))
+    }));
+
+    res.json({ mealsByDay });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // Diet tracker routes
 router.post('/diet-trackers', auth, createDietTracker);
 router.post('/diet-trackers/track-meal', auth, updateTrackerForMeal);

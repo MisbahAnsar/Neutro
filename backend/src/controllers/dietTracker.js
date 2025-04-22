@@ -151,183 +151,113 @@ const updateTrackerForMeal = async (req, res) => {
   try {
     const userId = req.userId;
     const { trackerId, dayNumber, mealId, eaten } = req.body;
-    
-    if (!userId) {
-      return res.status(401).json({ 
-        message: 'Authentication required',
-        error: {
-          code: ERROR_CODES.UNAUTHORIZED,
-          details: 'User authentication is required to update a tracker'
-        }
-      });
-    }
-    
-    // Validate required fields
+
+    console.log("Received from frontend:", { trackerId, dayNumber, mealId, eaten });
+
     const missingFields = [];
     if (!trackerId) missingFields.push('trackerId');
     if (!dayNumber) missingFields.push('dayNumber');
     if (!mealId) missingFields.push('mealId');
     if (eaten === undefined) missingFields.push('eaten');
-    
+
     if (missingFields.length > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Missing required fields',
         error: {
-          code: ERROR_CODES.VALIDATION_ERROR,
+          code: 'VALIDATION_ERROR',
           details: `The following required fields are missing: ${missingFields.join(', ')}`,
-          missingFields
-        }
+          missingFields,
+        },
       });
     }
-    
-    // Find the diet tracker
+
+    if (!mongoose.Types.ObjectId.isValid(mealId)) {
+      return res.status(400).json({
+        message: 'Invalid meal ID format',
+        error: {
+          code: 'VALIDATION_ERROR',
+          details: 'The provided meal ID is not valid',
+        },
+      });
+    }
+
     const dietTracker = await DietTracker.findById(trackerId);
-    
     if (!dietTracker) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Diet tracker not found',
         error: {
-          code: ERROR_CODES.NOT_FOUND,
-          details: `No diet tracker found with ID: ${trackerId}`
-        }
+          code: 'NOT_FOUND',
+          details: `No diet tracker found with ID: ${trackerId}`,
+        },
       });
     }
-    
-    // Check if the tracker belongs to the authenticated user
+
     if (dietTracker.userId.toString() !== userId.toString()) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Not authorized to update this tracker',
         error: {
-          code: ERROR_CODES.FORBIDDEN,
-          details: 'You can only update your own trackers'
-        }
+          code: 'FORBIDDEN',
+          details: 'You can only update your own trackers',
+        },
       });
     }
-    
-    // Find the diet plan to get meal details
+
     const dietPlan = await DietPlan.findById(dietTracker.dietPlanId);
-    
     if (!dietPlan) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Associated diet plan not found',
         error: {
-          code: ERROR_CODES.NOT_FOUND,
-          details: `No diet plan found with ID: ${dietTracker.dietPlanId}`
-        }
+          code: 'NOT_FOUND',
+          details: `No diet plan found with ID: ${dietTracker.dietPlanId}`,
+        },
       });
     }
-    
-    // Find the day and meal in the diet plan
+
     const day = dietPlan.days.find(d => d.dayNumber === parseInt(dayNumber));
-    
     if (!day) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Day not found in diet plan',
         error: {
-          code: ERROR_CODES.NOT_FOUND,
-          details: `No day with number ${dayNumber} found in the diet plan`
-        }
+          code: 'NOT_FOUND',
+          details: `No day with number ${dayNumber} found in the diet plan`,
+        },
       });
     }
-    
-    const meal = day.meals.id(mealId);
-    
+
+    // Use manual find instead of .id()
+    const meal = day.meals.find(m => m._id.toString() === mealId);
     if (!meal) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Meal not found',
         error: {
-          code: ERROR_CODES.NOT_FOUND,
-          details: `No meal found with ID: ${mealId} in day ${dayNumber}`
-        }
+          code: 'NOT_FOUND',
+          details: `No meal found with ID: ${mealId} in day ${dayNumber}`,
+        },
       });
     }
-    
-    // Update the meal status in the diet plan
+
     meal.eaten = eaten;
     await dietPlan.save();
-    
-    // Find or create the daily tracker for this day
-    let dailyTracker = dietTracker.dailyTrackers.find(t => t.dayNumber === parseInt(dayNumber));
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (!dailyTracker) {
-      // Create a new daily tracker for this day
-      dailyTracker = {
-        date: today,
-        dayNumber: parseInt(dayNumber),
-        completedMeals: 0,
-        totalMeals: day.meals.length,
-        completionPercentage: 0,
-        caloriesConsumed: 0,
-        targetCalories: dietPlan.dailyCalories,
-        nutrition: {
-          protein: {
-            consumed: 0,
-            target: dietPlan.dailyMacros.protein
-          },
-          carbs: {
-            consumed: 0,
-            target: dietPlan.dailyMacros.carbs
-          },
-          fat: {
-            consumed: 0,
-            target: dietPlan.dailyMacros.fat
-          }
-        }
-      };
-      
-      dietTracker.dailyTrackers.push(dailyTracker);
-    }
-    
-    // Recalculate the daily tracker stats
-    const eatenMeals = day.meals.filter(m => m.eaten);
-    
-    // Update the daily tracker
-    dailyTracker.completedMeals = eatenMeals.length;
-    dailyTracker.totalMeals = day.meals.length;
-    dailyTracker.completionPercentage = Math.round((eatenMeals.length / day.meals.length) * 100);
-    
-    // Calculate nutrition values
-    dailyTracker.caloriesConsumed = eatenMeals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0);
-    dailyTracker.nutrition.protein.consumed = eatenMeals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0);
-    dailyTracker.nutrition.carbs.consumed = eatenMeals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0);
-    dailyTracker.nutrition.fat.consumed = eatenMeals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0);
-    
-    // Update the tracker's current day if needed
-    if (parseInt(dayNumber) > dietTracker.currentDay) {
-      dietTracker.currentDay = parseInt(dayNumber);
-    }
-    
-    // Recalculate overall stats
-    dietTracker.calculateOverallCompletion();
-    dietTracker.calculateStreak();
-    dietTracker.calculateAdherenceScore();
-    
-    // Check if the plan is completed
-    if (dietTracker.currentDay >= dietTracker.totalDays && 
-        dietTracker.dailyTrackers.length >= dietTracker.totalDays) {
-      dietTracker.status = 'completed';
-    }
-    
-    // Save the updated tracker
-    await dietTracker.save();
-    
-    res.status(200).json({
+
+    // Return updated tracker details if needed
+    const updatedDietTracker = await DietTracker.findById(trackerId);
+
+    return res.status(200).json({
       message: 'Diet tracker updated successfully',
-      dietTracker,
-      dailyTracker,
-      meal
+      dietTracker: updatedDietTracker, // optional, for frontend updates
+      data: meal,
     });
+
   } catch (error) {
     console.error('Error updating diet tracker:', error);
-    res.status(500).json({ 
+    return res.status(500).json({
       message: 'Failed to update diet tracker',
-      error: error.message
+      error: error.message,
     });
   }
 };
+
+
 
 // Get the active diet tracker for a user
 const getActiveTracker = async (req, res) => {

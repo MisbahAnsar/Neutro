@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import DietPlanner from './DietPlanner';
 import DietTracker from './DietTracker';
+import CommunityWall from './CommunityWall';
 
 interface DashboardData {
   user: {
@@ -367,6 +368,17 @@ function Dashboard() {
                   }}
                 />
               </div>
+              <div className="mt-2 space-y-1">
+                <NavItem 
+                  icon={<Settings size={20} />} 
+                  text="Community Wall" 
+                  active={activeSection === 'community'} 
+                  onClick={() => {
+                    setActiveSection('community');
+                    setSidebarOpen(false);
+                  }}
+                />
+              </div>
             </div>
           </nav>
           
@@ -479,7 +491,11 @@ function Dashboard() {
               )
               : activeSection === 'schedule' ? (
                 <DietTracker />
-              ) : dashboardData && (
+              )
+              : activeSection === 'community' ? (
+                <CommunityWall />
+              )
+              : dashboardData && (
                 <div className="space-y-8">
                   {/* Welcome section with greeting and time */}
                   <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl p-6 md:p-8">

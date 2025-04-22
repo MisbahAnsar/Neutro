@@ -85,6 +85,25 @@ const DietTrackerComponent: React.FC = () => {
     fetchActiveDietTracker();
   }, [navigate]);
 
+  const calculateCurrentNutrition = () => {
+    if (!currentDayPlan) return {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0
+    };
+
+    return currentDayPlan.meals.reduce((acc, meal) => {
+      if (meal.eaten) {
+        acc.calories += meal.nutrition.calories;
+        acc.protein += meal.nutrition.protein;
+        acc.carbs += meal.nutrition.carbs;
+        acc.fat += meal.nutrition.fat;
+      }
+      return acc;
+    }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  };
+  
   const fetchActiveDietTracker = async () => {
     setLoading(true);
     setError(null);
@@ -179,9 +198,7 @@ const DietTrackerComponent: React.FC = () => {
     setUpdateLoading(true);
     setUpdateError(null);
     try {
-      const token = localStorage.getItem('neutroToken');
-      
-      // Update the local state with the updated meal status immediately for better UX
+      // Optimistically update the UI
       setCurrentDayPlan(prevDayPlan => {
         if (!prevDayPlan) return null;
         
@@ -199,11 +216,7 @@ const DietTrackerComponent: React.FC = () => {
       });
       
       setSuccessMessage(`Meal marked as ${eaten ? 'eaten' : 'not eaten'}. Don't forget to submit!`);
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       handleApiError(err, 'Error updating meal status');
     } finally {
@@ -219,37 +232,53 @@ const DietTrackerComponent: React.FC = () => {
     try {
       const token = localStorage.getItem('neutroToken');
       
-      // Process each meal in the current day for the tracker
-      const mealUpdates = [];
+      // Log the meals we're about to send
+      console.log("Current day meals:", currentDayPlan.meals);
       
-      for (const meal of currentDayPlan.meals) {
-        mealUpdates.push(
-          axios.post(
-            `${API_BASE_URL}/diet-trackers/track-meal`,
-            {
-              trackerId: dietTracker._id,
-              dayNumber: currentDayPlan.dayNumber,
-              mealId: meal._id,
-              eaten: meal.eaten
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-              timeout: API_TIMEOUT
-            }
-          )
-        );
+      // Process each meal in the current day for the tracker
+      const mealUpdates = currentDayPlan.meals.map(meal => {
+        if (!meal._id) {
+          console.error('Meal is missing ID:', meal);
+          return Promise.reject(new Error('Meal is missing ID'));
+        }
+  
+        return axios.post(
+          `${API_BASE_URL}/diet-trackers/track-meal`,
+          {
+            trackerId: dietTracker._id,
+            dayNumber: currentDayPlan.dayNumber,
+            mealId: meal._id,
+            eaten: meal.eaten
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: API_TIMEOUT
+          }
+        ).catch(err => {
+          console.error(`Failed to update meal ${meal._id}:`, err.response?.data || err.message);
+          return Promise.reject(err);
+        });
+      });
+      
+      // Execute all meal updates with better error handling
+      const results = await Promise.allSettled(mealUpdates);
+      
+      // Check for failures
+      const failedUpdates = results.filter(r => r.status === 'rejected');
+      if (failedUpdates.length > 0) {
+        console.error('Some meal updates failed:', failedUpdates);
+        throw new Error(`${failedUpdates.length} meal updates failed`);
       }
       
-      // Execute all meal updates
-      const results = await Promise.all(mealUpdates);
-      const lastResult = results[results.length - 1].data;
+      // All succeeded
+      const successfulUpdates = results.filter(r => r.status === 'fulfilled');
+      const lastResult = successfulUpdates[successfulUpdates.length - 1].value.data;
       
-      // Update the tracker with new adherence metrics from the last response
-      setDietTracker(prevTracker => {
-        if (!prevTracker) return null;
+      setDietTracker(prev => {
+        if (!prev) return null;
         
         return {
-          ...prevTracker,
+          ...prev,
           overallCompletionPercentage: lastResult.dietTracker.overallCompletionPercentage,
           streak: lastResult.dietTracker.streak,
           adherenceScore: lastResult.dietTracker.adherenceScore,
@@ -258,12 +287,10 @@ const DietTrackerComponent: React.FC = () => {
       });
       
       setSuccessMessage('Daily progress saved successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-    } catch (err: any) {
+    } catch (err) {
+      console.error('Error in submitDailyProgress:', err);
       handleApiError(err, 'Error submitting daily progress');
     } finally {
       setUpdateLoading(false);
@@ -315,27 +342,63 @@ const DietTrackerComponent: React.FC = () => {
   const getCurrentDayTracker = () => {
     if (!dietTracker || !selectedDay || !currentDayPlan) return null;
     
-    // Find the corresponding day tracker
-    const dayTracker = dietTracker.dailyTrackers.find(dt => dt.dayNumber === selectedDay);
+    // Find existing day tracker or create default one
+    let dayTracker = dietTracker.dailyTrackers.find(dt => dt.dayNumber === selectedDay);
     
+    // Calculate current values from the meal plan
+    const currentNutrition = calculateCurrentNutrition();
+    const eatenMealsCount = currentDayPlan.meals.filter(m => m.eaten).length;
+    const totalMeals = currentDayPlan.meals.length;
+    const completionPercentage = Math.round((eatenMealsCount / totalMeals) * 100);
+    
+    // If we have a day tracker, merge with current values
     if (dayTracker) {
-      return dayTracker;
+      return {
+        ...dayTracker,
+        completedMeals: eatenMealsCount,
+        totalMeals: totalMeals,
+        completionPercentage: completionPercentage,
+        caloriesConsumed: currentNutrition.calories,
+        nutrition: {
+          protein: {
+            consumed: currentNutrition.protein,
+            target: dayTracker.nutrition.protein.target
+          },
+          carbs: {
+            consumed: currentNutrition.carbs,
+            target: dayTracker.nutrition.carbs.target
+          },
+          fat: {
+            consumed: currentNutrition.fat,
+            target: dayTracker.nutrition.fat.target
+          }
+        }
+      };
     }
     
-    // If no day tracker exists yet for this day, return a placeholder with default values
+    // No existing tracker - create a new one with current values
     return {
       _id: '',
       date: new Date().toISOString(),
       dayNumber: selectedDay,
-      completedMeals: 0,
-      totalMeals: currentDayPlan.meals.length,
-      completionPercentage: 0,
-      caloriesConsumed: 0,
-      targetCalories: 0,
+      completedMeals: eatenMealsCount,
+      totalMeals: totalMeals,
+      completionPercentage: completionPercentage,
+      caloriesConsumed: currentNutrition.calories,
+      targetCalories: currentDayPlan.meals.reduce((sum, meal) => sum + meal.nutrition.calories, 0),
       nutrition: {
-        protein: { consumed: 0, target: 0 },
-        carbs: { consumed: 0, target: 0 },
-        fat: { consumed: 0, target: 0 }
+        protein: {
+          consumed: currentNutrition.protein,
+          target: currentDayPlan.meals.reduce((sum, meal) => sum + meal.nutrition.protein, 0)
+        },
+        carbs: {
+          consumed: currentNutrition.carbs,
+          target: currentDayPlan.meals.reduce((sum, meal) => sum + meal.nutrition.carbs, 0)
+        },
+        fat: {
+          consumed: currentNutrition.fat,
+          target: currentDayPlan.meals.reduce((sum, meal) => sum + meal.nutrition.fat, 0)
+        }
       }
     };
   };
@@ -413,6 +476,7 @@ const DietTrackerComponent: React.FC = () => {
       </div>
     );
   }
+  
 
   const currentDayTracker = getCurrentDayTracker();
   

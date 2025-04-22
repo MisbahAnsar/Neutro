@@ -1,4 +1,4 @@
-Please create a personalized meal plan for a user with the following details:
+Please create a personalized meal plan with maximum variety for a user with the following details:
 
 Age: {{age}}
 Weight: {{weight}} kg
@@ -11,85 +11,81 @@ Restrictions & Allergies: {{restrictionsAndAllergies}}
 Meals Per Day: {{mealsPerDay}}
 Plan Duration: {{planDuration}} days
 
-IMPORTANT DIETARY GUIDELINES:
-1. For vegetarian diets (dietType = "veg"), include only vegetarian foods
-2. For non-vegetarian diets (dietType = "non-veg"), include both vegetarian and non-vegetarian foods
-3. For vegan diets (dietType = "vegan"), exclude all animal products including dairy and honey
-4. DO NOT include beef in any meal plans regardless of diet type
-5. Focus on Indian cuisine and locally available ingredients
-6. Strictly avoid any ingredients listed in the restrictions and allergies
+IMPORTANT REQUIREMENTS:
+1. STRICT MEAL VARIETY: Never repeat the same main dish more than once every 3 days
+2. INGREDIENT ROTATION: Ensure no core ingredient repeats in consecutive meals
+3. DIET-SPECIFIC RULES:
+   - Vegetarian: Include dairy but no meat/eggs
+   - Non-vegetarian: Include eggs/fish/chicken (no beef)
+   - Vegan: Exclude all animal products
+4. CUISINE FOCUS: Indian cuisine with regional diversity (include dishes from North/South/East/West India)
+5. ALLERGY SAFETY: Strictly avoid restricted ingredients
 
-FITNESS GOAL GUIDELINES:
-1. For weight loss: Focus on lower-calorie, high-protein, high-fiber meals with controlled carbohydrates
-2. For weight gain: Include calorie-dense, nutrient-rich foods with adequate protein 
-3. For muscle building: Emphasize protein-rich foods and balanced macronutrients
-4. For maintenance: Create balanced meals with moderate portions
+FITNESS GOAL ADAPTATIONS:
+1. Weight Loss: High-fiber, low-GI carbs + lean proteins
+2. Weight Gain: Calorie-dense foods + healthy fats
+3. Muscle Building: Protein-focused + balanced macros
+4. Maintenance: Varied, portion-controlled meals
 
-Based on these details, generate a complete meal plan that includes the specified number of meals per day, typically distributed as:
-1. Breakfast
-2. Lunch
-3. Dinner
-4. Snacks (if mealsPerDay > 3)
+MEAL STRUCTURE RULES:
+1. Breakfast: Must include different grains (rotis/idli/dosa/paratha/poha) rotated daily
+2. Lunch/Dinner: Alternate between:
+   - Rice-based meals
+   - Roti-based meals
+   - Salad/soup meals
+3. Snacks: Vary between fruits, nuts, and savory options
 
-For each meal, provide:
-- Type (Breakfast/Lunch/Dinner/Snack)
-- Dish name (focusing on Indian cuisine)
-- Description (including key health benefits related to the user's fitness goal)
-- Nutrition information (approximate calories, protein, carbs, and fat)
+FORMAT REQUIREMENTS:
+For each day, provide:
+- 3 main meals + snacks (if requested)
+- Each meal must have:
+  * Unique dish name (regional Indian names encouraged)
+  * Detailed description with health benefits
+  * Precise nutrition info
+  * Cooking method (fried/steamed/grilled etc.)
 
-The response should be formatted in the following JSON structure:
+SAMPLE VARIETY TEMPLATE:
+Day 1: North Indian
+Day 2: South Indian
+Day 3: East Indian
+Day 4: West Indian
+Day 5: Fusion/Modern Indian
+(Repeat pattern)
 
+OUTPUT FORMAT (JSON):
 {
   "days": [
     {
       "dayNumber": 1,
+      "cuisineTheme": "North Indian",
       "meals": [
         {
           "type": "Breakfast",
-          "dishName": "Example Indian Breakfast",
-          "description": "Description of breakfast with health benefits",
+          "dishName": "Besan Chilla with Mint Chutney",
+          "description": "Protein-packed chickpea pancakes with digestive-friendly mint chutney. Ideal for muscle building.",
+          "cookingMethod": "Griddle-cooked",
           "nutrition": {
-            "calories": 300,
-            "protein": 15,
-            "carbs": 40,
-            "fat": 10
-          }
+            "calories": 320,
+            "protein": 18,
+            "carbs": 35,
+            "fat": 12
+          },
+          "keyIngredients": ["besan", "spinach", "mint"]
         },
         {
           "type": "Lunch",
-          "dishName": "Example Indian Lunch",
-          "description": "Description of lunch with health benefits",
+          "dishName": "Jowar Roti with Lauki Chana Dal",
+          "description": "High-fiber sorghum flatbread with bottle gourd and split chickpeas. Supports weight loss.",
+          "cookingMethod": "Steamed and boiled",
           "nutrition": {
-            "calories": 450,
-            "protein": 25,
+            "calories": 380,
+            "protein": 22,
             "carbs": 55,
-            "fat": 15
-          }
-        },
-        {
-          "type": "Dinner",
-          "dishName": "Example Indian Dinner",
-          "description": "Description of dinner with health benefits",
-          "nutrition": {
-            "calories": 400,
-            "protein": 20,
-            "carbs": 45,
-            "fat": 12
-          }
-        },
-        {
-          "type": "Snack",
-          "dishName": "Example Indian Snack",
-          "description": "Description of snack with health benefits",
-          "nutrition": {
-            "calories": 150,
-            "protein": 8,
-            "carbs": 15,
-            "fat": 6
-          }
+            "fat": 8
+          },
+          "keyIngredients": ["jowar", "bottle gourd", "chana dal"]
         }
       ]
-    },
-    // Repeat for each day up to planDuration
+    }
   ]
-} 
+}
