@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Utensils, Calendar, Loader, RefreshCcw, CheckCircle, XCircle, ChevronRight, Award, Activity, TrendingUp } from 'lucide-react';
+import { AlertCircle, Utensils, Calendar, Loader, RefreshCcw, CheckCircle, XCircle, ChevronRight, Award, Activity, TrendingUp, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
 
 // Constants for API configuration
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -72,6 +72,8 @@ const DietTrackerComponent: React.FC = () => {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isCreatingTracker, setIsCreatingTracker] = useState<boolean>(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     // Check for token
@@ -402,6 +404,22 @@ const DietTrackerComponent: React.FC = () => {
       }
     };
   };
+
+  // Add this helper function near your other utility functions
+const getDateForDay = (startDate: string, dayNumber: number) => {
+  const date = new Date(startDate);
+  date.setDate(date.getDate() + (dayNumber - 1)); // Subtract 1 since dayNumber starts at 1
+  return date;
+};
+
+// Format date as short string (e.g., "Mon, Jun 5")
+const formatShortDate = (date: Date) => {
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+};
   
   // Helper function to get status color
   const getStatusColor = (percentage: number) => {
@@ -418,6 +436,83 @@ const DietTrackerComponent: React.FC = () => {
       month: 'short', 
       day: 'numeric' 
     });
+  };
+
+  // Add these helper functions after the existing utility functions
+  const getCalendarDays = (startDate: string, totalDays: number) => {
+    const start = new Date(startDate);
+    const days = [];
+    
+    // Get the first day of the month
+    const firstDay = new Date(start.getFullYear(), start.getMonth(), 1);
+    // Get the last day of the month
+    const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+    
+    // Add empty cells for days before the start date
+    for (let i = 0; i < firstDay.getDay(); i++) {
+      days.push({ date: null, dayNumber: null, isCurrentMonth: false });
+    }
+    
+    // Add days of the month
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const currentDate = new Date(start.getFullYear(), start.getMonth(), i);
+      const dayNumber = Math.floor((currentDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      days.push({
+        date: currentDate,
+        dayNumber: dayNumber > 0 && dayNumber <= totalDays ? dayNumber : null,
+        isCurrentMonth: true
+      });
+    }
+    
+    return days;
+  };
+
+  const getWeekDays = () => {
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  };
+
+  // Add these helper functions after the existing utility functions
+  const getMonthName = (date: Date) => {
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  // Add these functions after the existing functions
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setMonth(newDate.getMonth() - 1);
+      } else {
+        newDate.setMonth(newDate.getMonth() + 1);
+      }
+      return newDate;
+    });
+  };
+
+  const isDateInMealPlan = (date: Date) => {
+    if (!dietTracker?.startDate) return false;
+    const startDate = new Date(dietTracker.startDate);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (dietTracker.totalDays - 1));
+    
+    return date >= startDate && date <= endDate;
+  };
+
+  const getDayNumberForDate = (date: Date) => {
+    if (!dietTracker?.startDate) return null;
+    const startDate = new Date(dietTracker.startDate);
+    const diffTime = date.getTime() - startDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays > 0 && diffDays <= dietTracker.totalDays ? diffDays : null;
   };
 
   if (loading) {
@@ -483,66 +578,13 @@ const DietTrackerComponent: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl shadow-xl p-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+      <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl shadow-xl p-4">
+        <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
           Diet Tracker
         </h1>
-        <p className="text-green-100">
+        <p className="text-green-100 text-sm">
           Track your meals and monitor your progress
         </p>
-        
-        {/* Progress metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-            <div className="flex items-center text-white mb-1">
-              <Award className="h-5 w-5 mr-2" />
-              <span className="font-medium">Adherence Score</span>
-            </div>
-            <div className="text-3xl font-bold text-white">
-              {dietTracker.adherenceScore}/100
-            </div>
-          </div>
-          
-          <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-            <div className="flex items-center text-white mb-1">
-              <TrendingUp className="h-5 w-5 mr-2" />
-              <span className="font-medium">Overall Completion</span>
-            </div>
-            <div className="text-3xl font-bold text-white">
-              {dietTracker.overallCompletionPercentage}%
-            </div>
-          </div>
-          
-          <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-            <div className="flex items-center text-white mb-1">
-              <Activity className="h-5 w-5 mr-2" />
-              <span className="font-medium">Current Streak</span>
-            </div>
-            <div className="text-3xl font-bold text-white">
-              {dietTracker.streak} {dietTracker.streak === 1 ? 'day' : 'days'}
-            </div>
-          </div>
-        </div>
-        
-        {/* Day selector */}
-        <div className="mt-6 overflow-x-auto">
-          <div className="flex space-x-2 pb-2 scrollbar-hide">
-            {Array.from({ length: dietTracker.totalDays }, (_, i) => i + 1).map(day => (
-              <button
-                key={day}
-                onClick={() => fetchDayPlanDetails(day)}
-                className={`px-4 py-2 rounded-md flex items-center transition-all ${
-                  selectedDay === day
-                    ? 'bg-white text-teal-600 font-medium shadow-md'
-                    : 'bg-teal-600/20 hover:bg-teal-600/30 text-white'
-                }`}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Day {day}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
       
       {/* Messages */}
@@ -553,224 +595,311 @@ const DietTrackerComponent: React.FC = () => {
         </div>
       )}
       
-      {successMessage && (
-        <div className="bg-green-50 text-green-700 p-4 rounded-lg shadow-sm flex items-center">
-          <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-          <span>{successMessage}</span>
-        </div>
-      )}
-      
-      {/* Main content */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-center">
-            <Loader className="animate-spin h-10 w-10 text-green-500 mx-auto mb-4" />
-            <p className="text-gray-600">Loading your meal data...</p>
-          </div>
-        ) : currentDayPlan ? (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-green-500" />
-                Day {currentDayPlan.dayNumber} Meal Plan
-              </h2>
-              
-              {currentDayTracker && (
-                <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
-                  {currentDayTracker.completionPercentage}% Complete
-                </span>
-              )}
-            </div>
-            
-            {/* Nutrition progress for the day */}
-            {currentDayTracker && (
-              <div className="mb-8 bg-gray-50 p-5 rounded-lg border border-gray-100">
-                <h3 className="text-sm font-medium text-gray-500 mb-4">Daily Nutrition Progress</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">Calories</span>
-                      <span className="text-sm font-medium text-gray-700">
-                        {currentDayTracker.caloriesConsumed} / {currentDayTracker.targetCalories} kcal
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className={`h-2.5 rounded-full ${getStatusColor(getDailyNutritionProgress(currentDayTracker).calories)}`} 
-                        style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).calories, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">Protein</span>
-                        <span className="text-sm font-medium text-gray-700">
-                          {currentDayTracker.nutrition.protein.consumed}g / {currentDayTracker.nutrition.protein.target}g
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="h-2.5 rounded-full bg-blue-600" 
-                          style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).protein, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">Carbs</span>
-                        <span className="text-sm font-medium text-gray-700">
-                          {currentDayTracker.nutrition.carbs.consumed}g / {currentDayTracker.nutrition.carbs.target}g
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="h-2.5 rounded-full bg-yellow-500" 
-                          style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).carbs, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">Fat</span>
-                        <span className="text-sm font-medium text-gray-700">
-                          {currentDayTracker.nutrition.fat.consumed}g / {currentDayTracker.nutrition.fat.target}g
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="h-2.5 rounded-full bg-green-600" 
-                          style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).fat, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Meals list */}
-            <div className="space-y-4">
-              {currentDayPlan.meals.map((meal) => (
-                <div key={meal._id} className="border rounded-lg overflow-hidden shadow-sm">
-                  <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
-                    <h3 className="font-medium text-gray-800 flex items-center">
-                      <Utensils className="h-4 w-4 mr-2 text-green-500" />
-                      {meal.type}
-                    </h3>
-                    <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      {meal.nutrition.calories} kcal
-                    </span>
-                  </div>
-                  
-                  <div className="p-5">
-                    <div className="flex justify-between">
-                      <h4 className="font-bold text-lg mb-2 text-gray-800">{meal.dishName}</h4>
-                      <div className="flex">
-                        <button
-                          onClick={() => handleMealStatusUpdate(meal._id, true)}
-                          disabled={updateLoading || meal.eaten === true}
-                          className={`p-2 rounded-full mr-1 ${
-                            meal.eaten === true
-                              ? 'bg-green-100 text-green-600'
-                              : 'bg-gray-100 hover:bg-green-100 text-gray-500 hover:text-green-600'
-                          }`}
-                        >
-                          <CheckCircle className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleMealStatusUpdate(meal._id, false)}
-                          disabled={updateLoading || meal.eaten === false}
-                          className={`p-2 rounded-full ${
-                            meal.eaten === false
-                              ? 'bg-red-100 text-red-600'
-                              : 'bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600'
-                          }`}
-                        >
-                          <XCircle className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 mb-4 text-sm">{meal.description}</p>
-                    
-                    <div className="grid grid-cols-3 gap-3 mt-4">
-                      <div className="text-center p-3 bg-blue-50 rounded-md border border-blue-100">
-                        <span className="block text-xs font-medium text-blue-700 mb-1">Protein</span>
-                        <span className="block font-bold text-lg text-blue-800">{meal.nutrition.protein}g</span>
-                      </div>
-                      <div className="text-center p-3 bg-yellow-50 rounded-md border border-yellow-100">
-                        <span className="block text-xs font-medium text-yellow-700 mb-1">Carbs</span>
-                        <span className="block font-bold text-lg text-yellow-800">{meal.nutrition.carbs}g</span>
-                      </div>
-                      <div className="text-center p-3 bg-green-50 rounded-md border border-green-100">
-                        <span className="block text-xs font-medium text-green-700 mb-1">Fat</span>
-                        <span className="block font-bold text-lg text-green-800">{meal.nutrition.fat}g</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Submit button for saving all meal updates */}
-            <div className="mt-8 flex justify-center">
-              <button
-                onClick={submitDailyProgress}
-                disabled={updateLoading}
-                className={`px-6 py-3 rounded-lg text-white font-medium flex items-center ${
-                  updateLoading 
-                    ? 'bg-green-400 cursor-not-allowed' 
-                    : 'bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg transition-all'
-                }`}
-              >
-                {updateLoading ? (
-                  <>
-                    <Loader className="animate-spin mr-2 h-5 w-5" />
-                    Saving Progress...
-                  </>
-                ) : (
-                  <>
-                    Save Daily Progress
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Success/Error messages */}
-            {successMessage && (
-              <div className="mt-4 bg-green-50 text-green-700 p-4 rounded-lg flex items-start">
-                <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                <span>{successMessage}</span>
-              </div>
-            )}
-            
-            {updateError && (
-              <div className="mt-4 bg-red-50 text-red-700 p-4 rounded-lg flex items-start">
-                <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                <span>{updateError}</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="p-8 text-center">
-            <RefreshCcw className="h-10 w-10 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-800 mb-2">No meal data available</h3>
-            <p className="text-gray-600 mb-4">
-              There was a problem fetching your meal data for this day.
-            </p>
+      {/* Main content with side-by-side layout */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Calendar section */}
+        <div className="bg-white rounded-xl shadow-sm p-4 h-fit">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => fetchDayPlanDetails(selectedDay || 1)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+              onClick={() => navigateMonth('prev')}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             >
-              Try Again
+              <ChevronLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <h3 className="text-lg font-semibold text-gray-800">
+              {getMonthName(currentMonth)}
+            </h3>
+            <button
+              onClick={() => navigateMonth('next')}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ChevronRightIcon className="h-5 w-5 text-gray-600" />
             </button>
           </div>
-        )}
+
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {getWeekDays().map((day) => (
+              <div key={day} className="text-center text-xs font-semibold text-gray-600 py-1">
+                {day}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, index) => (
+              <div key={`empty-${index}`} className="aspect-square" />
+            ))}
+            {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, index) => {
+              const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), index + 1);
+              const dayNumber = getDayNumberForDate(date);
+              const isInMealPlan = isDateInMealPlan(date);
+              const isToday = date.toDateString() === new Date().toDateString();
+              const isPast = dayNumber && dayNumber < (dietTracker?.currentDay || 0);
+              const isFuture = dayNumber && dayNumber > (dietTracker?.currentDay || 0);
+              
+              const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
+              const isCompleted = dayTracker && dayTracker.completionPercentage === 100;
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => dayNumber && fetchDayPlanDetails(dayNumber)}
+                  className={`aspect-square rounded-lg flex flex-col items-center justify-center p-1 transition-all relative overflow-hidden ${
+                    !isInMealPlan
+                      ? 'bg-gray-50 text-gray-300'
+                      : selectedDay === dayNumber
+                        ? 'bg-teal-600 text-white shadow-md'
+                        : isCompleted
+                          ? 'bg-green-500 text-white shadow-sm'
+                          : isPast
+                            ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
+                            : isFuture
+                              ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                              : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+                  }`}
+                  disabled={!dayNumber || !isInMealPlan}
+                >
+                  <span className={`text-sm font-semibold ${
+                    isCompleted ? 'text-white' : 'text-gray-700'
+                  }`}>
+                    {index + 1}
+                  </span>
+                  {isPast && !isCompleted && (
+                    <CheckCircle className="h-3 w-3 mt-0.5 text-teal-500" />
+                  )}
+                  {isToday && (
+                    <span className="text-[10px] mt-0.5 bg-teal-600 text-white px-1.5 py-0.5 rounded-full">
+                      Today
+                    </span>
+                  )}
+                  {isCompleted && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  {isCompleted && (
+                    <div className="absolute inset-0 bg-green-500 opacity-10 rounded-lg"></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Meal plans section */}
+        <div className="md:col-span-2">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {loading ? (
+              <div className="p-6 text-center">
+                <Loader className="animate-spin h-10 w-10 text-green-500 mx-auto mb-4" />
+                <p className="text-gray-600">Loading your meal data...</p>
+              </div>
+            ) : currentDayPlan && dietTracker ? (
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold flex items-center">
+                    <Calendar className="h-5 w-5 mr-2 text-green-500" />
+                    {formatShortDate(getDateForDay(dietTracker.startDate, currentDayPlan.dayNumber))}
+                  </h2>
+                  
+                  {currentDayTracker && (
+                    <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
+                      {currentDayTracker.completionPercentage}% Complete
+                    </span>
+                  )}
+                </div>
+                
+                {/* Nutrition progress for the day */}
+                {currentDayTracker && (
+                  <div className="mb-8 bg-gray-50 p-5 rounded-lg border border-gray-100">
+                    <h3 className="text-sm font-medium text-gray-500 mb-4">Daily Nutrition Progress</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-700">Calories</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            {currentDayTracker.caloriesConsumed} / {currentDayTracker.targetCalories} kcal
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className={`h-2.5 rounded-full ${getStatusColor(getDailyNutritionProgress(currentDayTracker).calories)}`} 
+                            style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).calories, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700">Protein</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {currentDayTracker.nutrition.protein.consumed}g / {currentDayTracker.nutrition.protein.target}g
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className="h-2.5 rounded-full bg-blue-600" 
+                              style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).protein, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700">Carbs</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {currentDayTracker.nutrition.carbs.consumed}g / {currentDayTracker.nutrition.carbs.target}g
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className="h-2.5 rounded-full bg-yellow-500" 
+                              style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).carbs, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700">Fat</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {currentDayTracker.nutrition.fat.consumed}g / {currentDayTracker.nutrition.fat.target}g
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className="h-2.5 rounded-full bg-green-600" 
+                              style={{ width: `${Math.min(getDailyNutritionProgress(currentDayTracker).fat, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Meals list */}
+                <div className="space-y-4">
+                  {currentDayPlan.meals.map((meal) => (
+                    <div key={meal._id} className="border rounded-lg overflow-hidden shadow-sm">
+                      <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
+                        <h3 className="font-medium text-gray-800 flex items-center">
+                          <Utensils className="h-4 w-4 mr-2 text-green-500" />
+                          {meal.type}
+                        </h3>
+                        <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                          {meal.nutrition.calories} kcal
+                        </span>
+                      </div>
+                      
+                      <div className="p-5">
+                        <div className="flex justify-between">
+                          <h4 className="font-bold text-lg mb-2 text-gray-800">{meal.dishName}</h4>
+                          <div className="flex">
+                            <button
+                              onClick={() => handleMealStatusUpdate(meal._id, true)}
+                              disabled={updateLoading || meal.eaten === true}
+                              className={`p-2 rounded-full mr-1 ${
+                                meal.eaten === true
+                                  ? 'bg-green-100 text-green-600'
+                                  : 'bg-gray-100 hover:bg-green-100 text-gray-500 hover:text-green-600'
+                              }`}
+                            >
+                              <CheckCircle className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleMealStatusUpdate(meal._id, false)}
+                              disabled={updateLoading || meal.eaten === false}
+                              className={`p-2 rounded-full ${
+                                meal.eaten === false
+                                  ? 'bg-red-100 text-red-600'
+                                  : 'bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600'
+                              }`}
+                            >
+                              <XCircle className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-600 mb-4 text-sm">{meal.description}</p>
+                        
+                        <div className="grid grid-cols-3 gap-3 mt-4">
+                          <div className="text-center p-3 bg-blue-50 rounded-md border border-blue-100">
+                            <span className="block text-xs font-medium text-blue-700 mb-1">Protein</span>
+                            <span className="block font-bold text-lg text-blue-800">{meal.nutrition.protein}g</span>
+                          </div>
+                          <div className="text-center p-3 bg-yellow-50 rounded-md border border-yellow-100">
+                            <span className="block text-xs font-medium text-yellow-700 mb-1">Carbs</span>
+                            <span className="block font-bold text-lg text-yellow-800">{meal.nutrition.carbs}g</span>
+                          </div>
+                          <div className="text-center p-3 bg-green-50 rounded-md border border-green-100">
+                            <span className="block text-xs font-medium text-green-700 mb-1">Fat</span>
+                            <span className="block font-bold text-lg text-green-800">{meal.nutrition.fat}g</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Submit button for saving all meal updates */}
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={submitDailyProgress}
+                    disabled={updateLoading}
+                    className={`px-6 py-3 rounded-lg text-white font-medium flex items-center ${
+                      updateLoading 
+                        ? 'bg-green-400 cursor-not-allowed' 
+                        : 'bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg transition-all'
+                    }`}
+                  >
+                    {updateLoading ? (
+                      <>
+                        <Loader className="animate-spin mr-2 h-5 w-5" />
+                        Saving Progress...
+                      </>
+                    ) : (
+                      <>
+                        Save Daily Progress
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Success/Error messages */}
+                {successMessage && (
+                  <div className="mt-4 bg-green-50 text-green-700 p-4 rounded-lg flex items-start">
+                    <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+                
+                {updateError && (
+                  <div className="mt-4 bg-red-50 text-red-700 p-4 rounded-lg flex items-start">
+                    <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>{updateError}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <RefreshCcw className="h-10 w-10 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-800 mb-2">No meal data available</h3>
+                <p className="text-gray-600 mb-4">
+                  There was a problem fetching your meal data for this day.
+                </p>
+                <button
+                  onClick={() => fetchDayPlanDetails(selectedDay || 1)}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
