@@ -10,14 +10,104 @@ Diet Type: {{dietType}}
 Restrictions & Allergies: {{restrictionsAndAllergies}}
 Meals Per Day: {{mealsPerDay}}
 Plan Duration: {{planDuration}} days
+foodType: {{foodType}}
+
+CRITICAL VALIDATION RULES:
+1. If foodType is "veg":
+   - STRICTLY PROHIBITED: Any meat, fish, eggs, or animal products
+   - VALIDATION CHECK: Before including any dish, verify it contains ONLY:
+     * Plant-based ingredients
+     * Dairy products (milk, yogurt, paneer, ghee)
+     * Legumes and pulses
+     * Grains and cereals
+     * Vegetables and fruits
+     * Nuts and seeds
+   - REJECT IMMEDIATELY: Any dish containing:
+     * Chicken, mutton, fish, eggs
+     * Any meat or seafood
+     * Any animal-derived ingredients except dairy
+
+2. PRE-VALIDATION REQUIREMENT:
+   - For each meal, first check if the dish name contains any non-veg words:
+     * REJECT if contains: chicken, fish, egg, mutton, meat, seafood, etc.
+   - For each meal description, verify it doesn't mention any non-veg ingredients
+   - For each meal's key ingredients, ensure they are all vegetarian
+
+3. EXAMPLE VALID VEG DISHES:
+   Breakfast:
+   - Poha with Peanuts
+   - Upma with Vegetables
+   - Dosa with Sambar
+   - Idli with Coconut Chutney
+   - Besan Chilla
+   - Vegetable Paratha
+   - Moong Dal Cheela
+
+   Lunch:
+   - Dal Tadka with Rice
+   - Rajma Chawal
+   - Chole Bhature
+   - Vegetable Biryani
+   - Paneer Butter Masala with Roti
+   - Dal Makhani with Naan
+   - Vegetable Khichdi
+
+   Dinner:
+   - Palak Paneer with Roti
+   - Vegetable Pulao
+   - Dal Fry with Rice
+   - Mixed Vegetable Curry
+   - Paneer Tikka Masala
+   - Vegetable Stew
+   - Dal Khichdi
+
+   Snacks:
+   - Fruit Salad
+   - Roasted Makhana
+   - Vegetable Cutlets
+   - Sprouts Salad
+   - Dhokla
+   - Chana Chaat
+   - Vegetable Soup
+
+4. EXAMPLE INVALID DISHES (MUST BE REJECTED):
+   - Chicken Tikka Masala
+   - Fish Curry
+   - Egg Bhurji
+   - Mutton Rogan Josh
+   - Chicken Biryani
+   - Egg Curry
+   - Tandoori Chicken
+   - Fish Fry
+   - Chicken Keema Paratha
+   - Any dish containing meat, fish, or eggs
 
 IMPORTANT REQUIREMENTS:
 1. STRICT MEAL VARIETY: Never repeat the same main dish more than once every 3 days
 2. INGREDIENT ROTATION: Ensure no core ingredient repeats in consecutive meals
-3. DIET-SPECIFIC RULES:
-   - Vegetarian: Include dairy but no meat/eggs
-   - Non-vegetarian: Include eggs/fish/chicken (no beef)
-   - Vegan: Exclude all animal products
+3. STRICT FOOD TYPE RULES:
+   - For "veg" foodType (STRICTLY NO MEAT, FISH, OR EGGS):
+     * EXCLUSIVELY use plant-based and dairy ingredients
+     * Protein sources: Paneer, tofu, lentils, legumes, dairy products
+     * NEVER include: eggs, fish, chicken, meat, or any animal products
+     * Sample dishes: 
+       - Breakfast: Poha, Upma, Dosa, Idli, Paratha with curd
+       - Lunch: Dal, Sabzi, Roti, Rice with vegetable curries
+       - Dinner: Paneer dishes, Vegetable biryani, Khichdi
+       - Snacks: Fruits, nuts, roasted makhana, vegetable cutlets
+   
+   - For "non-veg" foodType:
+     * Include eggs, fish, and chicken
+     * Balance with plant-based proteins
+     * Focus on lean protein sources
+     * Sample dishes: Egg dishes, Fish curries, Chicken preparations
+   
+   - For "both" foodType:
+     * Mix of vegetarian and non-vegetarian options
+     * Alternate between plant and animal proteins
+     * Ensure balanced nutrition from both sources
+     * Sample dishes: Mix of veg and non-veg options
+
 4. CUISINE FOCUS: Indian cuisine with regional diversity (include dishes from North/South/East/West India)
 5. ALLERGY SAFETY: Strictly avoid restricted ingredients
 
