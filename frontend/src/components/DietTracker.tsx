@@ -44,6 +44,12 @@ interface DietTracker {
   }>;
 }
 
+interface DietPlan {
+  _id: string;
+  planName: string;
+  // Add more fields if needed, e.g., dailyCalories, days, etc.
+}
+
 interface CurrentDayPlan {
   dayNumber: number;
   meals: Array<{
@@ -74,6 +80,19 @@ const DietTrackerComponent: React.FC = () => {
   const [isCreatingTracker, setIsCreatingTracker] = useState<boolean>(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [plans, setPlans] = useState<DietPlan[]>([]);
+
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/diet-plans`)
+      .then(response => {
+        setPlans(response.data.dietPlans);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching diet plans:', error);
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     // Check for token
@@ -580,7 +599,9 @@ const formatShortDate = (date: Date) => {
       {/* Header section */}
       <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl shadow-xl p-4">
         <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
-          Diet Tracker
+        {plans.map(plan => (
+            <span key={plan._id} className="font-medium gap-2">{plan.planName}</span>
+        ))}
         </h1>
         <p className="text-green-100 text-sm">
           Track your meals and monitor your progress

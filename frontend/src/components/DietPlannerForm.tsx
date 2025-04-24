@@ -13,6 +13,7 @@ interface DietPlannerFormProps {
 const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    planName: '',
     age: '',
     weight: '',
     height: '',
@@ -84,6 +85,10 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         setError('Please enter your age');
         return false;
       }
+      if (!formData.planName) { // Add this check
+        setError('Please give your plan a name');
+        return false;
+      }
       if (!formData.weight) {
         setError('Please enter your weight');
         return false;
@@ -137,6 +142,7 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
 
     try {
       const dietPlanParams = {
+        planName: formData.planName, // Add this line
         age: parseInt(formData.age),
         weight: parseInt(formData.weight),
         height: parseInt(formData.height),
@@ -208,6 +214,27 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              <div className="space-y-2">
+  <label htmlFor="planName" className="flex items-center text-sm font-medium text-gray-700">
+    <svg className="mr-2 h-4 w-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    Plan Name <span className="text-red-500 ml-1">*</span>
+  </label>
+  <input
+    type="text"
+    id="planName"
+    name="planName"
+    value={formData.planName}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+    placeholder="e.g., Summer Weight Loss Plan"
+    required
+  />
+  <p className="text-xs text-gray-500">Give your plan a descriptive name</p>
+</div>
+
                 <div className="space-y-2">
                   <label htmlFor="age" className="flex items-center text-sm font-medium text-gray-700">
                     <Calendar className="mr-2 h-4 w-4 text-teal-500" />

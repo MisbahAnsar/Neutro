@@ -10,6 +10,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import DietPlanner from './DietPlanner';
 import DietTracker from './DietTracker';
 import CommunityWall from './CommunityWall';
+import Profile from './Profile';
+import EditProfile from './EditProfile';
 
 interface DashboardData {
   user: {
@@ -379,6 +381,17 @@ function Dashboard() {
                   }}
                 />
               </div>
+              <div className="mt-2 space-y-1">
+                <NavItem 
+                  icon={<Settings size={20} />} 
+                  text="Edit Profile" 
+                  active={activeSection === 'editprofile'} 
+                  onClick={() => {
+                    setActiveSection('editprofile');
+                    setSidebarOpen(false);
+                  }}
+                />
+              </div>
             </div>
           </nav>
           
@@ -494,6 +507,12 @@ function Dashboard() {
               )
               : activeSection === 'community' ? (
                 <CommunityWall />
+              )
+              :  activeSection === 'profile' ? (
+                  <Profile />
+              )
+              : activeSection === 'editprofile' ? (
+                <EditProfile />
               )
               : dashboardData && (
                 <div className="space-y-8">

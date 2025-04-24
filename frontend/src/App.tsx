@@ -6,15 +6,18 @@ import LoginForm from './components/LoginForm'
 import SignupForm from './components/SignupForm'
 import Dashboard from './components/Dashboard'
 import Navbar from './components/Navbar'
+import MotivationalQuotes from './components/MotivationalQuotes' // 👈 import this
 
 // Wrapper component to conditionally render the Navbar
 function AppContent() {
   const location = useLocation();
   const showNavbar = location.pathname !== '/dashboard';
+  // const showQuotes = location.pathname !== '/dashboard'; // 👈 optional: hide on dashboard
 
   return (
     <>
       {showNavbar && <Navbar />}
+      {<MotivationalQuotes />} {/* 👈 here’s the magic */}
       <Routes>
         <Route path="/" element={<HeroSection />} />
         <Route path="/register" element={<RegistrationForm />} />
@@ -34,4 +37,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

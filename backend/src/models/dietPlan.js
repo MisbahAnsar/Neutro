@@ -40,6 +40,10 @@ const dietPlanSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  planName: {
+    type: String,
+    required: true
+  },
   age: {
     type: Number,
     required: true

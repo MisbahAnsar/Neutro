@@ -6,7 +6,6 @@ const {
   getUserDashboard, 
   getAllUsers, 
   updateUserProfile,
-  generateDietPlan,
   getLatestDietPlan,
   getDietPlanDay,
   getAllDietPlans,
@@ -39,6 +38,8 @@ router.get('/users/me/dashboard', auth, getUserDashboard);
 router.get('/users', auth, getAllUsers);
 
 // Diet plan routes
+const { generateDietPlan } = require('../controllers/dietPlan');
+
 router.post('/diet-plans', auth, generateDietPlan);
 router.get('/diet-plans/latest', auth, getLatestDietPlan);
 router.get('/diet-plans/days/:dayNumber', auth, getDietPlanDay);
@@ -69,7 +70,6 @@ router.get('/try/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 // Diet tracker routes
 router.post('/diet-trackers', auth, createDietTracker);

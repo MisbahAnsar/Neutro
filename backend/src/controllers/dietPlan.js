@@ -39,7 +39,7 @@ const generateDietPlan = async (req, res) => {
     // Extract parameters from request body
     const { 
       age, weight, height, gender, activityLevel, goal, 
-      planDuration, fitnessGoal, dietType, restrictionsAndAllergies, mealsPerDay, foodType
+      planDuration, fitnessGoal, dietType, restrictionsAndAllergies, mealsPerDay, foodType, planName
     } = req.body;
     
     // Validation
@@ -55,7 +55,8 @@ const generateDietPlan = async (req, res) => {
             !height ? 'height' : null,
             !gender ? 'gender' : null,
             !activityLevel ? 'activityLevel' : null,
-            !goal ? 'goal' : null
+            !goal ? 'goal' : null,
+            !planName ? 'planName' : null // Added planName to missing fields
           ].filter(Boolean)
         }
       });
@@ -190,6 +191,7 @@ const generateDietPlan = async (req, res) => {
     // Create the diet plan document with all information, including foodType
     const dietPlan = new DietPlan({
       userId,
+      planName, // Added planName
       age,
       weight,
       height,
