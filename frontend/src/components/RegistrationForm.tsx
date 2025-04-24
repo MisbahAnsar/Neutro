@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { User, Calendar, Scale, Target, Heart, Clock, Activity, AlertCircle, ArrowRight } from 'lucide-react';
 
 function RegistrationForm() {
   const [formData, setFormData] = useState({
@@ -143,197 +144,281 @@ function RegistrationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center mb-6">
-          {isUpdate ? 'Update Your Profile' : 'Complete Registration'}
-        </h2>
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
-            {error}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center py-12 px-4">
+      <div className="max-w-2xl w-full">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+              {isUpdate ? 'Update Your Profile' : 'Complete Registration'}
+            </h2>
+            <p className="text-gray-400">Help us create your personalized diet plan</p>
           </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              value={formData.name}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="age" className="block text-sm font-medium text-gray-700">Age</label>
-              <input
-                type="number"
-                id="age"
-                name="age"
-                required
-                min="1"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                value={formData.age}
-                onChange={handleChange}
-              />
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 flex items-center">
+              <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center mr-3">
+                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+              </div>
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1">
+              <label htmlFor="name" className="text-sm font-medium text-gray-300">Name</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter your name"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
-              <select
-                id="gender"
-                name="gender"
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                value={formData.gender}
-                onChange={handleChange}
-              >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="age" className="text-sm font-medium text-gray-300">Age</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="number"
+                    id="age"
+                    name="age"
+                    required
+                    min="1"
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Enter your age"
+                    value={formData.age}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="height" className="block text-sm font-medium text-gray-700">Height (cm)</label>
-              <input
-                type="number"
-                id="height"
-                name="height"
-                required
-                min="1"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                value={formData.height}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="weight" className="block text-sm font-medium text-gray-700">Weight (kg)</label>
-              <input
-                type="number"
-                id="weight"
-                name="weight"
-                required
-                min="1"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                value={formData.weight}
-                onChange={handleChange}
-              />
+              <div className="space-y-1">
+                <label htmlFor="gender" className="text-sm font-medium text-gray-300">Gender</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="gender"
+                    name="gender"
+                    required
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+                    value={formData.gender}
+                    onChange={handleChange}
+                  >
+                    <option value="" className="bg-gray-800">Select gender</option>
+                    <option value="male" className="bg-gray-800">Male</option>
+                    <option value="female" className="bg-gray-800">Female</option>
+                    <option value="other" className="bg-gray-800">Other</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="bmi" className="block text-sm font-medium text-gray-700">BMI</label>
-              <input
-                type="text"
-                id="bmi"
-                name="bmi"
-                readOnly
-                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50"
-                value={formData.bmi}
-              />
-            </div>
-          </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="height" className="text-sm font-medium text-gray-300">Height (cm)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Scale className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="number"
+                    id="height"
+                    name="height"
+                    required
+                    min="1"
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Height in cm"
+                    value={formData.height}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label htmlFor="dietType" className="block text-sm font-medium text-gray-700">Diet Type</label>
-            <select
-              id="dietType"
-              name="dietType"
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              value={formData.dietType}
-              onChange={handleChange}
+              <div className="space-y-1">
+                <label htmlFor="weight" className="text-sm font-medium text-gray-300">Weight (kg)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Scale className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="number"
+                    id="weight"
+                    name="weight"
+                    required
+                    min="1"
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Weight in kg"
+                    value={formData.weight}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="bmi" className="text-sm font-medium text-gray-300">BMI</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Activity className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    id="bmi"
+                    name="bmi"
+                    readOnly
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    value={formData.bmi}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="dietType" className="text-sm font-medium text-gray-300">Diet Type</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Heart className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="dietType"
+                    name="dietType"
+                    required
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+                    value={formData.dietType}
+                    onChange={handleChange}
+                  >
+                    <option value="" className="bg-gray-800">Select diet type</option>
+                    <option value="veg" className="bg-gray-800">Vegetarian</option>
+                    <option value="non-veg" className="bg-gray-800">Non-Vegetarian</option>
+                    <option value="vegan" className="bg-gray-800">Vegan</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="fitnessGoal" className="text-sm font-medium text-gray-300">Fitness Goal</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Target className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="fitnessGoal"
+                    name="fitnessGoal"
+                    required
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+                    value={formData.fitnessGoal}
+                    onChange={handleChange}
+                  >
+                    <option value="" className="bg-gray-800">Select fitness goal</option>
+                    <option value="weight-loss" className="bg-gray-800">Weight Loss</option>
+                    <option value="weight-gain" className="bg-gray-800">Weight Gain</option>
+                    <option value="muscle-building" className="bg-gray-800">Muscle Building</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="restrictionsAndAllergies" className="text-sm font-medium text-gray-300">
+                Restrictions & Allergies
+              </label>
+              <div className="relative">
+                <div className="absolute top-3 left-3">
+                  <AlertCircle className="h-5 w-5 text-gray-400" />
+                </div>
+                <textarea
+                  id="restrictionsAndAllergies"
+                  name="restrictionsAndAllergies"
+                  className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={formData.restrictionsAndAllergies}
+                  onChange={handleChange}
+                  rows={2}
+                  placeholder="Enter any dietary restrictions or allergies (comma-separated)"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="mealsPerDay" className="text-sm font-medium text-gray-300">Meals per Day</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Clock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="number"
+                    id="mealsPerDay"
+                    name="mealsPerDay"
+                    required
+                    min="2"
+                    max="6"
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Number of meals"
+                    value={formData.mealsPerDay}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="planDuration" className="text-sm font-medium text-gray-300">Plan Duration (days)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="number"
+                    id="planDuration"
+                    name="planDuration"
+                    required
+                    min="3"
+                    max="60"
+                    className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Duration in days"
+                    value={formData.planDuration}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 px-4 rounded-xl text-white font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${
+                loading 
+                  ? 'bg-blue-500/50 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl'
+              }`}
             >
-              <option value="">Select diet type</option>
-              <option value="veg">Vegetarian</option>
-              <option value="non-veg">Non-Vegetarian</option>
-              <option value="vegan">Vegan</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="fitnessGoal" className="block text-sm font-medium text-gray-700">Fitness Goal</label>
-            <select
-              id="fitnessGoal"
-              name="fitnessGoal"
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              value={formData.fitnessGoal}
-              onChange={handleChange}
-            >
-              <option value="">Select fitness goal</option>
-              <option value="weight-loss">Weight Loss</option>
-              <option value="weight-gain">Weight Gain</option>
-              <option value="muscle-building">Muscle Building</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="restrictionsAndAllergies" className="block text-sm font-medium text-gray-700">
-              Restrictions & Allergies (comma-separated)
-            </label>
-            <textarea
-              id="restrictionsAndAllergies"
-              name="restrictionsAndAllergies"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              value={formData.restrictionsAndAllergies}
-              onChange={handleChange}
-              rows={2}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="mealsPerDay" className="block text-sm font-medium text-gray-700">Meals per Day</label>
-              <input
-                type="number"
-                id="mealsPerDay"
-                name="mealsPerDay"
-                required
-                min="2"
-                max="6"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                value={formData.mealsPerDay}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="planDuration" className="block text-sm font-medium text-gray-700">Plan Duration (days)</label>
-              <input
-                type="number"
-                id="planDuration"
-                name="planDuration"
-                required
-                min="3"
-                max="60"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                value={formData.planDuration}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3 px-4 rounded-full text-lg font-semibold text-white ${
-              loading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'
-            } transition-colors`}
-          >
-            {loading ? 'Processing...' : (isUpdate ? 'Update Profile' : 'Complete Registration')}
-          </button>
-        </form>
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>{isUpdate ? 'Update Profile' : 'Complete Registration'}</span>
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

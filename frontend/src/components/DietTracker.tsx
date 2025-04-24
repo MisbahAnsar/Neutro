@@ -598,91 +598,102 @@ const formatShortDate = (date: Date) => {
       {/* Main content with side-by-side layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Calendar section */}
-        <div className="bg-white rounded-xl shadow-sm p-4 h-fit">
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-xl font-bold mb-4">Plan Calendar</h2>
+          
           {/* Month navigation */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => navigateMonth('prev')}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
-            </button>
-            <h3 className="text-lg font-semibold text-gray-800">
-              {getMonthName(currentMonth)}
-            </h3>
-            <button
-              onClick={() => navigateMonth('next')}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ChevronRightIcon className="h-5 w-5 text-gray-600" />
-            </button>
+          <div className="bg-white rounded-lg mb-4">
+            <div className="flex items-center justify-between px-2 py-3">
+              <button
+                onClick={() => navigateMonth('prev')}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-600" />
+              </button>
+              <h3 className="text-base font-medium text-gray-900">
+                {getMonthName(currentMonth)}
+              </h3>
+              <button
+                onClick={() => navigateMonth('next')}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <ChevronRightIcon className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {getWeekDays().map((day) => (
-              <div key={day} className="text-center text-xs font-semibold text-gray-600 py-1">
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, index) => (
-              <div key={`empty-${index}`} className="aspect-square" />
-            ))}
-            {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, index) => {
-              const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), index + 1);
-              const dayNumber = getDayNumberForDate(date);
-              const isInMealPlan = isDateInMealPlan(date);
-              const isToday = date.toDateString() === new Date().toDateString();
-              const isPast = dayNumber && dayNumber < (dietTracker?.currentDay || 0);
-              const isFuture = dayNumber && dayNumber > (dietTracker?.currentDay || 0);
-              
-              const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
-              const isCompleted = dayTracker && dayTracker.completionPercentage === 100;
-              
-              return (
-                <button
-                  key={index}
-                  onClick={() => dayNumber && fetchDayPlanDetails(dayNumber)}
-                  className={`aspect-square rounded-lg flex flex-col items-center justify-center p-1 transition-all relative overflow-hidden ${
-                    !isInMealPlan
-                      ? 'bg-gray-50 text-gray-300'
-                      : selectedDay === dayNumber
-                        ? 'bg-teal-600 text-white shadow-md'
-                        : isCompleted
-                          ? 'bg-green-500 text-white shadow-sm'
-                          : isPast
-                            ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
-                            : isFuture
-                              ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                              : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
-                  }`}
-                  disabled={!dayNumber || !isInMealPlan}
-                >
-                  <span className={`text-sm font-semibold ${
-                    isCompleted ? 'text-white' : 'text-gray-700'
-                  }`}>
+          {/* Calendar grid */}
+          <div className="mb-4">
+            <div className="grid grid-cols-7 mb-2">
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                <div key={day} className="text-center text-sm text-gray-500 py-1">
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, index) => (
+                <div key={`empty-${index}`} className="h-8" />
+              ))}
+              {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, index) => {
+                const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), index + 1);
+                const dayNumber = getDayNumberForDate(date);
+                const isInMealPlan = isDateInMealPlan(date);
+                const isToday = date.toDateString() === new Date().toDateString();
+                const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
+                
+                let status = '';
+                if (dayTracker) {
+                  if (dayTracker.completionPercentage === 100) status = 'completed';
+                  else if (dayTracker.completionPercentage > 0) status = 'partial';
+                  else if (dayTracker.completionPercentage === 0 && date < new Date()) status = 'missed';
+                }
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => dayNumber && fetchDayPlanDetails(dayNumber)}
+                    disabled={!isInMealPlan}
+                    className={`h-8 flex items-center justify-center rounded-lg text-sm ${
+                      !isInMealPlan
+                        ? 'text-gray-300'
+                        : selectedDay === dayNumber
+                          ? 'bg-purple-200 text-purple-700 font-medium'
+                          : status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : status === 'partial'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : status === 'missed'
+                                ? 'bg-red-100 text-red-700'
+                                : isToday
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'hover:bg-gray-100'
+                    }`}
+                  >
                     {index + 1}
-                  </span>
-                  {isPast && !isCompleted && (
-                    <CheckCircle className="h-3 w-3 mt-0.5 text-teal-500" />
-                  )}
-                  {isToday && (
-                    <span className="text-[10px] mt-0.5 bg-teal-600 text-white px-1.5 py-0.5 rounded-full">
-                      Today
-                    </span>
-                  )}
-                  {isCompleted && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <CheckCircle className="h-4 w-4 text-white" />
-                    </div>
-                  )}
-                  {isCompleted && (
-                    <div className="absolute inset-0 bg-green-500 opacity-10 rounded-lg"></div>
-                  )}
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Legend:</p>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
+                <span className="text-sm text-gray-600">Completed</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                <span className="text-sm text-gray-600">Partially completed</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                <span className="text-sm text-gray-600">Missed</span>
+              </div>
+            </div>
           </div>
         </div>
 
