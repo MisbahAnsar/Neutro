@@ -8,7 +8,7 @@ Activity Level: {{activityLevel}}
 Fitness Goal: {{fitnessGoal}}
 Diet Type: {{dietType}}
 Restrictions & Allergies: {{restrictionsAndAllergies}}
-Meals Per Day: {{mealsPerDay}}
+Meals Per Day: {{mealPerDay}}
 Plan Duration: {{planDuration}} days
 foodType: {{foodType}}
 
@@ -81,6 +81,26 @@ CRITICAL VALIDATION RULES:
    - Fish Fry
    - Chicken Keema Paratha
    - Any dish containing meat, fish, or eggs
+
+CRITICAL REQUIREMENTS:
+1. STRICTLY MAINTAIN {{foodType}} FOR ENTIRE {{planDuration}} DAYS:
+   - If veg: ZERO non-veg items in any meal
+   - Never revert to non-veg after initial veg days
+
+2. EXACTLY {{mealPerDay}} MEALS PER DAY:
+   - Never default to 3 meals
+   - Verify count before returning
+   - Sample structure for {{mealPerDay}}=5:
+     * Breakfast
+     * Mid-Morning Snack
+     * Lunch
+     * Evening Snack
+     * Dinner
+
+3. FAILSAFES:
+   - If unable to maintain requirements:
+     * RETURN ERROR INSTEAD OF INCORRECT MEALS
+     * MESSAGE: "Cannot fulfill request within constraints"
 
 IMPORTANT REQUIREMENTS:
 1. STRICT MEAL VARIETY: Never repeat the same main dish more than once every 3 days

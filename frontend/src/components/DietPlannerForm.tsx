@@ -19,6 +19,7 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
     height: '',
     gender: 'male',
     activityLevel: 'moderately-active',
+    mealPerDay: '',
     goal: 'weight-loss',
     planDuration: '7',
     foodType: 'both'
@@ -148,6 +149,7 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
         height: parseInt(formData.height),
         gender: formData.gender,
         activityLevel: formData.activityLevel,
+        mealPerDay: parseInt(formData.mealPerDay),
         goal: formData.goal,
         planDuration: parseInt(formData.planDuration),
         foodType: formData.foodType
@@ -310,6 +312,24 @@ const DietPlannerForm: React.FC<DietPlannerFormProps> = ({ onPlanGenerated }) =>
                     <option value="other">Other</option>
                   </select>
                 </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="height" className="flex items-center text-sm font-medium text-gray-700">
+                    <Ruler className="mr-2 h-4 w-4 text-teal-500" />
+                    Meal per day <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="mealPerDay"
+                    name="mealPerDay"
+                    value={formData.mealPerDay}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">Between 2 and 4</p>
+                </div>
+
               </div>
             </div>
             <div className="flex justify-end pt-4">

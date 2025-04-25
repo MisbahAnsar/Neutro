@@ -2,10 +2,19 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Utensils, Calendar, Loader, RefreshCcw, CheckCircle, XCircle, ChevronRight, Award, Activity, TrendingUp, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
-
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // Constants for API configuration
 const API_BASE_URL = 'http://localhost:3000/api';
 const API_TIMEOUT = 15000; // 15 seconds
+
+type DietPlans = {
+  _id: string;
+  planName: string;
+  status: string;
+  dailyCalories: number;
+  planDuration: number;
+};
 
 interface DietTracker {
   _id: string;
@@ -67,6 +76,53 @@ interface CurrentDayPlan {
   }>;
 }
 
+type Nutrition = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+type Meal = {
+  _id: string;
+  type: string;
+  dishName: string;
+  description: string;
+  nutrition: Nutrition;
+  eaten: boolean;
+};
+
+type Day = {
+  dayNumber: number;
+  meals: Meal[];
+  _id: string;
+};
+
+type DietplanssType = {
+  _id: string;
+  userId: string;
+  planName: string;
+  age: number;
+  weight: number;
+  height: number;
+  gender: string;
+  activityLevel: string;
+  goal: string;
+  foodType: string;
+  planDuration: number;
+  dailyCalories: number;
+  dailyMacros: Nutrition;
+  status: string;
+  days: Day[];
+};
+
+// Add this interface near your other interfaces
+interface MealReminder {
+  id: number;
+  message: string;
+  time: string; // in HH:MM format (24-hour)
+}
+
 const DietTrackerComponent: React.FC = () => {
   const navigate = useNavigate();
   const [dietTracker, setDietTracker] = useState<DietTracker | null>(null);
@@ -81,6 +137,8 @@ const DietTrackerComponent: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [plans, setPlans] = useState<DietPlan[]>([]);
+  const [Dietplanss, setDietplanss] = useState<DietplanssType[]>([]);
+
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/diet-plans`)
@@ -94,6 +152,14 @@ const DietTrackerComponent: React.FC = () => {
       });
   }, []);
 
+   // Add this useEffect hook near your other useEffect hooks
+   useEffect(() => {
+    if (dietTracker) { // Only set up reminders if user has an active tracker
+      setupMealReminders();
+    }
+  }, [dietTracker]);
+
+
   useEffect(() => {
     // Check for token
     const token = localStorage.getItem('neutroToken');
@@ -105,6 +171,35 @@ const DietTrackerComponent: React.FC = () => {
     // Fetch active diet tracker
     fetchActiveDietTracker();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchDietplanss = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/diet-plans`);
+        console.log("Axios Response:", res.data);
+        setDietplanss(res.data.dietPlans || []);
+      } catch (err) {
+        console.error("Axios error getting Dietplanss:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDietplanss();
+  }, []);
+
+
+  const handleDelete = async (planId: string) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this plan?");
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/diet-plans/${planId}`);
+      setDietplanss((prev) => prev.filter((plan) => plan._id !== planId));
+    } catch (err) {
+      console.error("Error deleting diet plan:", err);
+    }
+  };
 
   const calculateCurrentNutrition = () => {
     if (!currentDayPlan) return {
@@ -440,6 +535,12 @@ const formatShortDate = (date: Date) => {
   });
 };
   
+const MEAL_REMINDERS: MealReminder[] = [
+  { id: 1, message: "🍳 Time for your breakfast! Don't skip the most important meal of the day.", time: "8:00" },
+  { id: 2, message: "🥗 Your lunch time is now! Stay consistent with your diet plan.", time: "13:00" },
+  { id: 3, message: "🍗 Dinner time! Complete your daily nutrition goals.", time: "20:00" }
+];
+
   // Helper function to get status color
   const getStatusColor = (percentage: number) => {
     if (percentage >= 90) return 'bg-green-500';
@@ -594,6 +695,42 @@ const formatShortDate = (date: Date) => {
 
   const currentDayTracker = getCurrentDayTracker();
   
+  const setupMealReminders = () => {
+    // Get current time in IST (UTC+5:30)
+    const now = new Date();
+    const offset = 5.5 * 60 * 60 * 1000; // IST offset in milliseconds
+    const istTime = new Date(now.getTime() + offset);
+    const currentHours = istTime.getUTCHours();
+    const currentMinutes = istTime.getUTCMinutes();
+    const currentTimeString = `${currentHours.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')}`;
+  
+    // Check each reminder
+    MEAL_REMINDERS.forEach(reminder => {
+      // Only show if it's the exact time and we haven't shown it today
+      if (reminder.time === currentTimeString) {
+        const lastShown = localStorage.getItem(`lastShown_${reminder.id}`);
+        const today = new Date().toDateString();
+        
+        if (!lastShown || lastShown !== today) {
+          toast.info(reminder.message, {
+            position: "top-right",
+            autoClose: 10000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          localStorage.setItem(`lastShown_${reminder.id}`, today);
+        }
+      }
+    });
+  
+    // Check again in 1 minute
+    setTimeout(setupMealReminders, 60000);
+  };
+  
+ 
+  
   return (
     <div className="space-y-6">
       {/* Header section */}
@@ -615,9 +752,46 @@ const formatShortDate = (date: Date) => {
           <span>{error}</span>
         </div>
       )}
+
+<div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Your Dietplanss</h1>
+      {Dietplanss.map((plan) => (
+        <div key={plan._id} className="border border-gray-300 p-4 rounded-xl shadow mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-xl font-semibold">{plan.planName}</h2>
+            <button
+              onClick={() => handleDelete(plan._id)}
+              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            {plan.dailyCalories} calories/day • {plan.planDuration} days • Goal: {plan.goal}
+          </p>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div>Protein: {plan.dailyMacros.protein}g</div>
+            <div>Carbs: {plan.dailyMacros.carbs}g</div>
+            <div>Fat: {plan.dailyMacros.fat}g</div>
+          </div>
+        </div>
+      ))}
+    </div>
       
       {/* Main content with side-by-side layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+<ToastContainer
+  position="top-right"
+  aria-label="Toast notifications"
+  autoClose={10000}
+  newestOnTop={false}
+  closeOnClick
+  rtl={false}
+  pauseOnFocusLoss
+  draggable
+  pauseOnHover
+  theme="light"
+/>
         {/* Calendar section */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-bold mb-4">Plan Calendar</h2>

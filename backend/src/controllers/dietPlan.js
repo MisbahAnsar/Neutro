@@ -1,4 +1,4 @@
-const { User, DietPlan } = require('../models');
+const { User, DietPlan, DietTracker } = require('../models');
 const { generateMealPlan, generateExtraDays } = require('../utils/geminiApi');
 const { calculateBMR, calculateTDEE, calculateCalories, calculateMacros } = require('../utils/nutritionCalculations');
 
@@ -39,7 +39,7 @@ const generateDietPlan = async (req, res) => {
     // Extract parameters from request body
     const { 
       age, weight, height, gender, activityLevel, goal, 
-      planDuration, fitnessGoal, dietType, restrictionsAndAllergies, mealsPerDay, foodType, planName
+      planDuration, fitnessGoal, dietType, restrictionsAndAllergies, mealPerDay, foodType, planName
     } = req.body;
     
     // Validation
@@ -75,14 +75,14 @@ const generateDietPlan = async (req, res) => {
       });
     }
 
-    if (mealsPerDay < 2 || mealsPerDay > 6) {
+    if (mealPerDay < 2 || mealPerDay > 6) {
       return res.status(400).json({ 
         message: 'Invalid meals per day', 
         error: {
           code: ERROR_CODES.VALIDATION_ERROR,
           details: 'Meals per day must be between 2 and 6',
-          field: 'mealsPerDay',
-          validRange: { min: 2, max: 6 }
+          field: 'mealPerDay',
+          validRange: { min: 1, max: 6 }
         }
       });
     }
@@ -119,10 +119,10 @@ const generateDietPlan = async (req, res) => {
       
       const mealPlanParams = {
         age, weight, height, gender, activityLevel, fitnessGoal: fitnessGoal || goal,
-        dietType: dietType || 'non-veg',
+        dietType: dietType || 'balanced',
         foodType: foodType,  // Pass foodType here
         restrictionsAndAllergies: restrictionsAndAllergies || [],
-        mealsPerDay: mealsPerDay || 3,
+        mealPerDay: mealPerDay, // Never default - use exactly what user provided
         planDuration: planDuration || 7
       };
       
@@ -159,7 +159,7 @@ const generateDietPlan = async (req, res) => {
         mealPlanData = generateExtraDays(
           planDuration || 7, 
           [], 
-          mealsPerDay || 3,
+          mealPerDay || 3,
           dietType || 'non-veg',
           foodType // Use foodType in fallback data generation if needed
         );
@@ -171,6 +171,7 @@ const generateDietPlan = async (req, res) => {
         };
       }
     }
+    
     
     // Process the meal plan data (AI-generated or fallback)
     let days = [];
@@ -198,6 +199,7 @@ const generateDietPlan = async (req, res) => {
       gender,
       activityLevel,
       goal,
+      mealPerDay,
       planDuration: planDuration || days.length,
       dailyCalories,
       dailyMacros,
@@ -256,6 +258,86 @@ const generateDietPlan = async (req, res) => {
   }
 };
 
+const deleteMealPlan = async (req, res) => {
+  try {
+    // Authentication check
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ 
+        message: 'Authentication required', 
+        error: {
+          code: ERROR_CODES.UNAUTHORIZED,
+          details: 'User authentication is required'
+        }
+      });
+    }
+
+    // Parameter validation
+    const { planId } = req.params;
+    if (!planId) {
+      return res.status(400).json({ 
+        message: 'Plan ID is required',
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          details: 'Missing plan ID parameter'
+        }
+      });
+    }
+
+    // Verify plan exists and belongs to user
+    const existingPlan = await DietPlan.findOne({ 
+      _id: planId,
+      userId
+    });
+
+    if (!existingPlan) {
+      return res.status(404).json({ 
+        message: 'Plan not found', 
+        error: {
+          code: ERROR_CODES.NOT_FOUND,
+          details: 'No plan found with the provided ID'
+        }
+      });
+    }
+
+    // Permanent deletion
+    const result = await DietPlan.deleteOne({ 
+      _id: planId,
+      userId 
+    });
+
+    if (result.deletedCount === 0) {
+      throw new Error('Failed to delete plan');
+    }
+
+    return res.status(200).json({
+      message: 'Diet plan permanently deleted',
+      deletedPlanId: planId,
+      planName: existingPlan.planName,
+      deletedAt: new Date()
+    });
+    
+  } catch (error) {
+    console.error('Delete meal plan error:', error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        message: 'Invalid plan ID format',
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR
+        }
+      });
+    }
+    
+    return res.status(500).json({ 
+      message: 'Failed to delete diet plan', 
+      error: {
+        code: ERROR_CODES.INTERNAL_ERROR,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      }
+    });
+  }
+};
 
 /**
  * Get the user's latest diet plan
@@ -597,5 +679,6 @@ module.exports = {
   getLatestDietPlan,
   getDietPlanDay,
   getAllDietPlans,
-  trackMeal
+  trackMeal,
+  deleteMealPlan
 }; 

@@ -15,11 +15,11 @@ try {
  * Generate extra days for a meal plan when needed
  * @param {number} planDuration - The total number of days required
  * @param {Array} existingDays - Any existing days to include (optional)
- * @param {number} mealsPerDay - Number of meals per day (optional, default: 4)
+ * @param {number} mealPerDay - Number of meals per day (optional, default: 4)
  * @param {string} dietType - Type of diet (veg, non-veg, vegan) (optional, default: 'non-veg')
  * @returns {Array} Complete array of days
  */
-function generateExtraDays(planDuration, existingDays = [], mealsPerDay = 4, dietType = 'non-veg') {
+function generateExtraDays(planDuration, existingDays = [], mealPerDay = 4, dietType = 'non-veg') {
   const days = [...existingDays];
   
   // Set up meal templates based on diet type
@@ -320,7 +320,7 @@ function generateExtraDays(planDuration, existingDays = [], mealsPerDay = 4, die
   
   // Fill in any missing days up to planDuration
   for (let i = days.length + 1; i <= planDuration; i++) {
-    // Determine which meals to include based on mealsPerDay
+    // Determine which meals to include based on mealPerDay
     const mealTypes = [];
     
     // Always include main meals
@@ -329,13 +329,13 @@ function generateExtraDays(planDuration, existingDays = [], mealsPerDay = 4, die
     mealTypes.push("Dinner");
     
     // Add additional meals if needed
-    if (mealsPerDay > 3) {
+    if (mealPerDay > 3) {
       mealTypes.push("Snack");
     }
-    if (mealsPerDay > 4) {
+    if (mealPerDay > 4) {
       mealTypes.push("Evening Snack");
     }
-    if (mealsPerDay > 5) {
+    if (mealPerDay > 5) {
       mealTypes.push("Mid-morning Snack");
     }
     
@@ -382,7 +382,7 @@ const generateMealPlan = async (params) => {
       fitnessGoal,
       dietType,
       restrictionsAndAllergies,
-      mealsPerDay 
+      mealPerDay 
     } = params;
     
     // Load prompts from file
@@ -412,7 +412,7 @@ const generateMealPlan = async (params) => {
       .replace('{{fitnessGoal}}', fitnessGoal || goal)
       .replace('{{dietType}}', dietType || 'non-veg')
       .replace('{{restrictionsAndAllergies}}', restrictionsAndAllergies || 'None')
-      .replace('{{mealsPerDay}}', mealsPerDay || 4);
+      .replace('{{mealPerDay}}', mealPerDay || 4);
       
     console.log('Sending prompt to Gemini API');
     
@@ -485,7 +485,7 @@ const generateMealPlan = async (params) => {
       console.warn(`API returned only ${mealPlanData.days.length} days, expected ${planDuration}`);
       
       // Generate extra days if needed
-      const completeDays = generateExtraDays(planDuration, mealPlanData.days, mealsPerDay, dietType);
+      const completeDays = generateExtraDays(planDuration, mealPlanData.days, mealPerDay, dietType);
       mealPlanData.days = completeDays;
       
       // Add a warning to the response
@@ -505,15 +505,15 @@ const generateMealPlan = async (params) => {
         // Create meals based on diet type and meals per day
         day.meals = [];
         
-        // Determine which meals to include based on mealsPerDay
+        // Determine which meals to include based on mealPerDay
         const mealTypes = [];
         mealTypes.push("Breakfast");
         mealTypes.push("Lunch");
         mealTypes.push("Dinner");
         
-        if (mealsPerDay > 3) mealTypes.push("Snack");
-        if (mealsPerDay > 4) mealTypes.push("Evening Snack");
-        if (mealsPerDay > 5) mealTypes.push("Mid-morning Snack");
+        if (mealPerDay > 3) mealTypes.push("Snack");
+        if (mealPerDay > 4) mealTypes.push("Evening Snack");
+        if (mealPerDay > 5) mealTypes.push("Mid-morning Snack");
         
         // Create meals for this day
         day.meals = mealTypes.map(mealType => getRandomMeal(mealType, day.dayNumber));
@@ -536,15 +536,15 @@ const generateMealPlan = async (params) => {
           }
         });
         
-        // Check if we have enough meals for mealsPerDay
-        if (day.meals.length < mealsPerDay) {
+        // Check if we have enough meals for mealPerDay
+        if (day.meals.length < mealPerDay) {
           // Determine what meal types we already have
           const existingTypes = day.meals.map(m => m.type);
           
           // Add missing meal types
           const allMealTypes = ["Breakfast", "Lunch", "Dinner", "Snack", "Evening Snack", "Mid-morning Snack"];
           
-          for (let i = 0; i < allMealTypes.length && day.meals.length < mealsPerDay; i++) {
+          for (let i = 0; i < allMealTypes.length && day.meals.length < mealPerDay; i++) {
             if (!existingTypes.includes(allMealTypes[i])) {
               day.meals.push(getRandomMeal(allMealTypes[i], day.dayNumber));
             }
@@ -552,13 +552,13 @@ const generateMealPlan = async (params) => {
         }
         
         // If we have more meals than needed, remove excess (preserving main meals)
-        if (day.meals.length > mealsPerDay) {
+        if (day.meals.length > mealPerDay) {
           // Prioritize keeping the main meals
           const mainMeals = day.meals.filter(m => ['Breakfast', 'Lunch', 'Dinner'].includes(m.type));
           const otherMeals = day.meals.filter(m => !['Breakfast', 'Lunch', 'Dinner'].includes(m.type));
           
-          // Only keep enough other meals to meet mealsPerDay
-          day.meals = [...mainMeals, ...otherMeals.slice(0, Math.max(0, mealsPerDay - mainMeals.length))];
+          // Only keep enough other meals to meet mealPerDay
+          day.meals = [...mainMeals, ...otherMeals.slice(0, Math.max(0, mealPerDay - mainMeals.length))];
         }
       }
     });

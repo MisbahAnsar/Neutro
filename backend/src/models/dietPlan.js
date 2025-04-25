@@ -40,6 +40,10 @@ const dietPlanSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  mealPerDay: {
+    type: Number,
+    required: true,
+  },
   planName: {
     type: String,
     required: true
@@ -90,6 +94,15 @@ const dietPlanSchema = new mongoose.Schema({
     protein: Number,
     carbs: Number,
     fat: Number
+  },
+  status: {
+    type: String,
+    enum: ['active', 'deleted'], // Only allow these values
+    default: 'active'            // New plans are 'active' by default
+  },
+  deletedAt: {
+    type: Date,                  // Will store when the plan was deleted
+    default: null                // Initially null (not deleted)
   },
   days: [dayPlanSchema],
   createdAt: {
