@@ -1,201 +1,62 @@
-Please create a personalized meal plan with maximum variety for a user with the following details:
+Generate EXACTLY {{planDuration}} days of Indian meals ({{mealPerDay}} meals/day) for:
+- {{age}}yo {{gender}}
+- {{weight}}kg, {{height}}cm
+- {{activityLevel}} activity
+- Goal: {{fitnessGoal}}
+- Diet: {{dietType}}
+- Food: {{foodType}}
+- Allergies: {{restrictionsAndAllergies || 'None'}}
 
-Age: {{age}}
-Weight: {{weight}} kg
-Height: {{height}} cm
-Gender: {{gender}}
-Activity Level: {{activityLevel}}
-Fitness Goal: {{fitnessGoal}}
-Diet Type: {{dietType}}
-Restrictions & Allergies: {{restrictionsAndAllergies}}
-Meals Per Day: {{mealPerDay}}
-Plan Duration: {{planDuration}} days
-foodType: {{foodType}}
+CRITICAL INSTRUCTIONS:
+1. OUTPUT EXACTLY {{planDuration}} DAYS - DO NOT STOP EARLY
+2. {{foodType}} RULES:
+   • veg: Only dairy + plants
+   • non-veg: Include eggs/chicken/fish
+   • both: Mix appropriately
+3. EACH DAY MUST HAVE:
+   • Day number (1 to {{planDuration}})
+   • {{mealPerDay}} meals with:
+     - type (Breakfast/Lunch/etc)
+     - dishName
+     - description (20 words)
+     - cookingMethod
+     - nutrition (calories, protein, carbs, fat)
+     - 3 keyIngredients
 
-CRITICAL VALIDATION RULES:
-1. If foodType is "veg":
-   - STRICTLY PROHIBITED: Any meat, fish, eggs, or animal products
-   - VALIDATION CHECK: Before including any dish, verify it contains ONLY:
-     * Plant-based ingredients
-     * Dairy products (milk, yogurt, paneer, ghee)
-     * Legumes and pulses
-     * Grains and cereals
-     * Vegetables and fruits
-     * Nuts and seeds
-   - REJECT IMMEDIATELY: Any dish containing:
-     * Chicken, mutton, fish, eggs
-     * Any meat or seafood
-     * Any animal-derived ingredients except dairy
-
-2. PRE-VALIDATION REQUIREMENT:
-   - For each meal, first check if the dish name contains any non-veg words:
-     * REJECT if contains: chicken, fish, egg, mutton, meat, seafood, etc.
-   - For each meal description, verify it doesn't mention any non-veg ingredients
-   - For each meal's key ingredients, ensure they are all vegetarian
-
-3. EXAMPLE VALID VEG DISHES:
-   Breakfast:
-   - Poha with Peanuts
-   - Upma with Vegetables
-   - Dosa with Sambar
-   - Idli with Coconut Chutney
-   - Besan Chilla
-   - Vegetable Paratha
-   - Moong Dal Cheela
-
-   Lunch:
-   - Dal Tadka with Rice
-   - Rajma Chawal
-   - Chole Bhature
-   - Vegetable Biryani
-   - Paneer Butter Masala with Roti
-   - Dal Makhani with Naan
-   - Vegetable Khichdi
-
-   Dinner:
-   - Palak Paneer with Roti
-   - Vegetable Pulao
-   - Dal Fry with Rice
-   - Mixed Vegetable Curry
-   - Paneer Tikka Masala
-   - Vegetable Stew
-   - Dal Khichdi
-
-   Snacks:
-   - Fruit Salad
-   - Roasted Makhana
-   - Vegetable Cutlets
-   - Sprouts Salad
-   - Dhokla
-   - Chana Chaat
-   - Vegetable Soup
-
-4. EXAMPLE INVALID DISHES (MUST BE REJECTED):
-   - Chicken Tikka Masala
-   - Fish Curry
-   - Egg Bhurji
-   - Mutton Rogan Josh
-   - Chicken Biryani
-   - Egg Curry
-   - Tandoori Chicken
-   - Fish Fry
-   - Chicken Keema Paratha
-   - Any dish containing meat, fish, or eggs
-
-CRITICAL REQUIREMENTS:
-1. STRICTLY MAINTAIN {{foodType}} FOR ENTIRE {{planDuration}} DAYS:
-   - If veg: ZERO non-veg items in any meal
-   - Never revert to non-veg after initial veg days
-
-2. EXACTLY {{mealPerDay}} MEALS PER DAY:
-   - Never default to 3 meals
-   - Verify count before returning
-   - Sample structure for {{mealPerDay}}=5:
-     * Breakfast
-     * Mid-Morning Snack
-     * Lunch
-     * Evening Snack
-     * Dinner
-
-3. FAILSAFES:
-   - If unable to maintain requirements:
-     * RETURN ERROR INSTEAD OF INCORRECT MEALS
-     * MESSAGE: "Cannot fulfill request within constraints"
-
-IMPORTANT REQUIREMENTS:
-1. STRICT MEAL VARIETY: Never repeat the same main dish more than once every 3 days
-2. INGREDIENT ROTATION: Ensure no core ingredient repeats in consecutive meals
-3. STRICT FOOD TYPE RULES:
-   - For "veg" foodType (STRICTLY NO MEAT, FISH, OR EGGS):
-     * EXCLUSIVELY use plant-based and dairy ingredients
-     * Protein sources: Paneer, tofu, lentils, legumes, dairy products
-     * NEVER include: eggs, fish, chicken, meat, or any animal products
-     * Sample dishes: 
-       - Breakfast: Poha, Upma, Dosa, Idli, Paratha with curd
-       - Lunch: Dal, Sabzi, Roti, Rice with vegetable curries
-       - Dinner: Paneer dishes, Vegetable biryani, Khichdi
-       - Snacks: Fruits, nuts, roasted makhana, vegetable cutlets
-   
-   - For "non-veg" foodType:
-     * Include eggs, fish, and chicken
-     * Balance with plant-based proteins
-     * Focus on lean protein sources
-     * Sample dishes: Egg dishes, Fish curries, Chicken preparations
-   
-   - For "both" foodType:
-     * Mix of vegetarian and non-vegetarian options
-     * Alternate between plant and animal proteins
-     * Ensure balanced nutrition from both sources
-     * Sample dishes: Mix of veg and non-veg options
-
-4. CUISINE FOCUS: Indian cuisine with regional diversity (include dishes from North/South/East/West India)
-5. ALLERGY SAFETY: Strictly avoid restricted ingredients
-
-FITNESS GOAL ADAPTATIONS:
-1. Weight Loss: High-fiber, low-GI carbs + lean proteins
-2. Weight Gain: Calorie-dense foods + healthy fats
-3. Muscle Building: Protein-focused + balanced macros
-4. Maintenance: Varied, portion-controlled meals
-
-MEAL STRUCTURE RULES:
-1. Breakfast: Must include different grains (rotis/idli/dosa/paratha/poha) rotated daily
-2. Lunch/Dinner: Alternate between:
-   - Rice-based meals
-   - Roti-based meals
-   - Salad/soup meals
-3. Snacks: Vary between fruits, nuts, and savory options
-
-FORMAT REQUIREMENTS:
-For each day, provide:
-- 3 main meals + snacks (if requested)
-- Each meal must have:
-  * Unique dish name (regional Indian names encouraged)
-  * Detailed description with health benefits
-  * Precise nutrition info
-  * Cooking method (fried/steamed/grilled etc.)
-
-SAMPLE VARIETY TEMPLATE:
-Day 1: North Indian
-Day 2: South Indian
-Day 3: East Indian
-Day 4: West Indian
-Day 5: Fusion/Modern Indian
-(Repeat pattern)
-
-OUTPUT FORMAT (JSON):
+FAILSAFE:
+If constraints can't be met:
 {
   "days": [
     {
       "dayNumber": 1,
-      "cuisineTheme": "North Indian",
       "meals": [
         {
           "type": "Breakfast",
-          "dishName": "Besan Chilla with Mint Chutney",
-          "description": "Protein-packed chickpea pancakes with digestive-friendly mint chutney. Ideal for muscle building.",
-          "cookingMethod": "Griddle-cooked",
+          "dishName": "{{foodType}} Poha",
+          "description": "Light flattened rice with veggies{{foodType==='non-veg'?' and eggs':''}}",
+          "cookingMethod": "Stir-fried",
           "nutrition": {
-            "calories": 320,
-            "protein": 18,
-            "carbs": 35,
-            "fat": 12
+            "calories": 300,
+            "protein": {{foodType==='veg'? '8' : '12'}},
+            "carbs": 45,
+            "fat": 7
           },
-          "keyIngredients": ["besan", "spinach", "mint"]
-        },
-        {
-          "type": "Lunch",
-          "dishName": "Jowar Roti with Lauki Chana Dal",
-          "description": "High-fiber sorghum flatbread with bottle gourd and split chickpeas. Supports weight loss.",
-          "cookingMethod": "Steamed and boiled",
-          "nutrition": {
-            "calories": 380,
-            "protein": 22,
-            "carbs": 55,
-            "fat": 8
-          },
-          "keyIngredients": ["jowar", "bottle gourd", "chana dal"]
+          "keyIngredients": [
+            "poha",
+            "peanuts",
+            {{foodType==='veg'? '"curry leaves"' : '"eggs"'}}
+          ]
         }
       ]
     }
+  ]
+}
+
+FORMAT STRICTLY AS:
+{
+  "days": [
+    { /* Day 1 */ },
+    { /* Day 2 */ },
+    // ... ALL {{planDuration}} DAYS MUST BE PRESENT
   ]
 }
