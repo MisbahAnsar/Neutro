@@ -12,6 +12,8 @@ import DietTracker from './DietTracker';
 import CommunityWall from './CommunityWall';
 import Profile from './Profile';
 import EditProfile from './EditProfile';
+import Macros from './Macros';
+import MealPlanner from './CustomMealPlan';
 
 interface DashboardData {
   user: {
@@ -335,6 +337,15 @@ function Dashboard() {
                   }}
                 />
                 <NavItem 
+                  icon={<LineChart size={20} />} 
+                  text="Custom Meal Plan" 
+                  active={activeSection === 'customplan'} 
+                  onClick={() => {
+                    setActiveSection('customplan');
+                    setSidebarOpen(false);
+                  }}
+                />
+                <NavItem 
                   icon={<User size={20} />} 
                   text="Profile" 
                   active={activeSection === 'profile'} 
@@ -349,6 +360,15 @@ function Dashboard() {
                   active={activeSection === 'progress'} 
                   onClick={() => {
                     setActiveSection('progress');
+                    setSidebarOpen(false);
+                  }}
+                />
+                <NavItem 
+                  icon={<LineChart size={20} />} 
+                  text="Macros Tracker" 
+                  active={activeSection === 'macros'} 
+                  onClick={() => {
+                    setActiveSection('macros');
                     setSidebarOpen(false);
                   }}
                 />
@@ -513,6 +533,12 @@ function Dashboard() {
               )
               : activeSection === 'editprofile' ? (
                 <EditProfile />
+              )
+              : activeSection === 'macros' ? (
+                <Macros />
+              )
+              : activeSection === 'customplan' ? (
+                <MealPlanner />
               )
               : dashboardData && (
                 <div className="space-y-8">

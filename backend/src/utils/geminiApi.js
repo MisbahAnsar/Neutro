@@ -581,7 +581,112 @@ const generateMealPlan = async (params) => {
   }
 };
 
+/**
+ * Generate a custom meal plan based on user input
+ * @param {string} userSentence - The user's input sentence
+ * @returns {Object} Generated meal plan data
+ */
+const customGeminiMealPlan = async (userSentence) => {
+  if (!genAI) {
+    throw new Error(JSON.stringify({
+      code: 'GEMINI_NOT_INITIALIZED',
+      message: 'Gemini API not initialized',
+      details: 'The API key may be missing or invalid'
+    }));
+  }
+
+  // --- Added here ---
+  function safelyParseJson(responseText) {
+    const firstBrace = responseText.indexOf('{');
+    const lastBrace = responseText.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error('No JSON object found');
+    }
+    const jsonSubstring = responseText.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(jsonSubstring);
+    } catch (error) {
+      console.error('Failed to parse JSON:', error.message);
+      throw error;
+    }
+  }
+  // -------------------
+
+  try {
+    const promptsPath = path.join(__dirname, '../../prompts/customMealPrompt.txt');
+    let promptTemplate = fs.readFileSync(promptsPath, 'utf8');
+    
+    const enhancedPrompt = `
+    ${promptTemplate}
+    
+    USER REQUEST:
+    "${userSentence}"
+    
+    IMPORTANT INSTRUCTIONS:
+    1. ALWAYS return valid meal plan data in the required JSON format
+    2. If you cannot fulfill exact requirements, provide the closest possible alternative
+    3. Never return an error object - always return meal plan data
+    4. For dietary restrictions you can't accommodate, note them in a 'notes' field
+    5. If unsure about a dish's suitability, choose a safer alternative
+    
+    OUTPUT REQUIREMENTS:
+    - Must be valid JSON with 'days' array
+    - Each day must contain at least 3 meals
+    - Include nutritional information for each meal
+
+    END INSTRUCTION:
+    - Your entire response MUST ONLY be the JSON. No pre-text, no post-text, no explanations, no markdown formatting, nothing except the JSON.
+    `;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    console.log('Generating custom meal plan...');
+    const result = await model.generateContent(enhancedPrompt);
+    const response = result.response;
+    const responseText = response.text();
+    
+    if (!responseText) {
+      throw new Error('Empty response from Gemini API');
+    }
+    
+    // Directly use safelyParseJson to get clean JSON
+    const mealPlanData = safelyParseJson(responseText);
+    
+    // Validate basic structure
+    if (!mealPlanData.days || !Array.isArray(mealPlanData.days)) {
+      throw new Error('Invalid meal plan structure - missing days array');
+    }
+    
+    // Ensure minimum meal count
+    mealPlanData.days.forEach(day => {
+      if (!day.meals || day.meals.length < 3) {
+        day.meals = day.meals || [];
+        while (day.meals.length < 3) {
+          day.meals.push({
+            type: ["Breakfast", "Lunch", "Dinner"][day.meals.length],
+            dishName: "Custom meal to be determined",
+            description: "Will be customized based on your preferences",
+            nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 }
+          });
+        }
+      }
+    });
+    
+    return mealPlanData;
+    
+  } catch (error) {
+    console.error('Error in customGeminiMealPlan:', error);
+    return {
+      days: [],
+      notes: ["Failed to generate complete plan: " + error.message],
+      warning: "Partial response due to generation constraints"
+    };
+  }
+};
+
+
 module.exports = { 
   generateMealPlan,
-  generateExtraDays 
+  generateExtraDays,
+  customGeminiMealPlan
 }; 

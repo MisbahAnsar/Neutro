@@ -38,7 +38,7 @@ router.get('/users/me/dashboard', auth, getUserDashboard);
 router.get('/users', auth, getAllUsers);
 
 // Diet plan routes
-const { generateDietPlan, deleteMealPlan } = require('../controllers/dietPlan');
+const { generateDietPlan, deleteMealPlan, customMealPlanner, deleteCustomMealPlan, getCustomMealPlan, updateMealStatus } = require('../controllers/dietPlan');
 
 router.post('/diet-plans', auth, generateDietPlan);
 router.get('/diet-plans/latest', auth, getLatestDietPlan);
@@ -46,6 +46,11 @@ router.get('/diet-plans/days/:dayNumber', auth, getDietPlanDay);
 router.get('/diet-plans', auth, getAllDietPlans);
 router.post('/diet-plans/track-meal', auth, trackMeal);
 router.delete('/diet-plans/:planId', auth, deleteMealPlan);
+
+router.post('/custom-meal-plan',auth, customMealPlanner);
+router.delete('/diet-plan/:mealPlanId', auth, deleteCustomMealPlan);
+router.get('/meal-plan/', auth, getCustomMealPlan);
+router.put('/meal-plan/update-status',auth, updateMealStatus);
 
 router.get('/try/:id', async (req, res) => {
   const DietPlan = require('../models/dietPlan'); // adjust if path is different

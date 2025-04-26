@@ -1,5 +1,5 @@
 const { User, DietPlan, DietTracker } = require('../models');
-const { generateMealPlan, generateExtraDays } = require('../utils/geminiApi');
+const { generateMealPlan, generateExtraDays, customGeminiMealPlan } = require('../utils/geminiApi');
 const { calculateBMR, calculateTDEE, calculateCalories, calculateMacros } = require('../utils/nutritionCalculations');
 
 // Error codes for different scenarios
@@ -253,6 +253,236 @@ const generateDietPlan = async (req, res) => {
       error: {
         code: ERROR_CODES.INTERNAL_ERROR,
         details: error.message || 'An unexpected error occurred'
+      }
+    });
+  }
+};
+
+/**
+ * Generate a custom meal plan based on user input
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+const CustomMeal = require('../models/CustomMeal');
+const MealPlan = require('../models/CustomMeal');
+
+const customMealPlanner = async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ 
+        message: 'Authentication required', 
+        error: {
+          code: ERROR_CODES.UNAUTHORIZED,
+          details: 'User authentication is required'
+        }
+      });
+    }
+
+    const { userSentence } = req.body;
+    if (!userSentence) {
+      return res.status(400).json({
+        message: 'Invalid input',
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          details: 'Please provide your meal plan request'
+        }
+      });
+    }
+
+    const mealPlanData = await customGeminiMealPlan(userSentence);
+
+    // Save meal plan even if partially generated (but has some structure)
+    const savedPlan = await CustomMeal.create({
+      userId,
+      message: mealPlanData.days.length > 0 
+        ? 'Custom meal plan generated successfully' 
+        : 'Meal plan generated with limitations',
+      days: mealPlanData.days,
+      notes: mealPlanData.notes || [],
+      warning: mealPlanData.warning || ''
+    });
+
+    // Return saved plan
+    return res.status(200).json({
+      message: savedPlan.message,
+      mealPlan: savedPlan
+    });
+
+  } catch (error) {
+    console.error('Error in customMealPlanner:', error);
+    return res.status(500).json({
+      message: 'Failed to generate meal plan',
+      error: {
+        code: ERROR_CODES.INTERNAL_ERROR,
+        details: error.message
+      }
+    });
+  }
+};
+
+const deleteCustomMealPlan = async (req, res) => {
+  try {
+    const userId = req.userId; // Assuming auth middleware sets req.userId
+    const { mealPlanId } = req.params; // Plan ID from URL
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'Authentication required',
+        error: { code: 'UNAUTHORIZED', details: 'User authentication is required' }
+      });
+    }
+
+    if (!mealPlanId) {
+      return res.status(400).json({
+        message: 'Invalid request',
+        error: { code: 'VALIDATION_ERROR', details: 'Meal Plan ID is required' }
+      });
+    }
+
+    // Correct reference to the CustomMeal model
+    const mealPlan = await CustomMeal.findOne({ _id: mealPlanId, userId });
+
+    if (!mealPlan) {
+      return res.status(404).json({
+        message: 'Meal plan not found',
+        error: { code: 'NOT_FOUND', details: 'No matching meal plan for this user' }
+      });
+    }
+
+    await mealPlan.deleteOne(); // Delete the meal plan
+
+    return res.status(200).json({
+      message: 'Meal plan deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting meal plan:', error);
+    return res.status(500).json({
+      message: 'Failed to delete meal plan',
+      error: { code: 'INTERNAL_ERROR', details: error.message }
+    });
+  }
+};
+
+const getCustomMealPlan = async (req, res) => {
+  try {
+    // Assuming your authentication middleware sets req.userId
+    const userId = req.userId; 
+
+    // Check if user is authenticated
+    if (!userId) {
+      return res.status(401).json({
+        message: 'Authentication required',
+        error: { code: 'UNAUTHORIZED', details: 'User authentication is required' }
+      });
+    }
+
+    // Find all meal plans by userId
+    const mealPlans = await CustomMeal.find({ userId });
+
+    if (mealPlans.length === 0) {
+      return res.status(404).json({
+        message: 'No meal plans found for this user',
+        error: { code: 'NOT_FOUND', details: 'User has no meal plans' }
+      });
+    }
+
+    // Respond with the list of meal plans
+    return res.status(200).json({
+      message: 'Meal plans fetched successfully',
+      mealPlans: mealPlans
+    });
+
+  } catch (error) {
+    console.error('Error fetching meal plans:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch meal plans',
+      error: { code: 'INTERNAL_ERROR', details: error.message }
+    });
+  }
+};
+
+const updateMealStatus = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { mealPlanId, dayNumber, mealType } = req.body;
+
+    // Validate required fields
+    if (!userId || !mealPlanId || !dayNumber || !mealType) {
+      return res.status(400).json({
+        message: 'Missing required fields',
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          details: 'mealPlanId, dayNumber, and mealType are required'
+        }
+      });
+    }
+
+    // Find the meal plan
+    const mealPlan = await CustomMeal.findOne({
+      _id: mealPlanId,
+      userId: userId
+    });
+
+    if (!mealPlan) {
+      return res.status(404).json({
+        message: 'Meal plan not found',
+        error: {
+          code: ERROR_CODES.NOT_FOUND,
+          details: 'No meal plan found for this user with the provided ID'
+        }
+      });
+    }
+
+    // Find the specific day
+    const dayIndex = mealPlan.days.findIndex(day => day.dayNumber === dayNumber);
+    if (dayIndex === -1) {
+      return res.status(404).json({
+        message: 'Day not found',
+        error: {
+          code: ERROR_CODES.NOT_FOUND,
+          details: `Day ${dayNumber} not found in the meal plan`
+        }
+      });
+    }
+
+    // Find the specific meal
+    const mealIndex = mealPlan.days[dayIndex].meals.findIndex(
+      meal => meal.type.toLowerCase() === mealType.toLowerCase()
+    );
+
+    if (mealIndex === -1) {
+      return res.status(404).json({
+        message: 'Meal not found',
+        error: {
+          code: ERROR_CODES.NOT_FOUND,
+          details: `Meal of type ${mealType} not found in day ${dayNumber}`
+        }
+      });
+    }
+
+    // Toggle the eaten status (or set to true if you only want one-way update)
+    mealPlan.days[dayIndex].meals[mealIndex].eaten = true;
+
+    // Mark the array as modified since we're modifying a nested object
+    mealPlan.markModified('days');
+
+    // Save the updated meal plan
+    const updatedMealPlan = await mealPlan.save();
+
+    return res.status(200).json({
+      message: 'Meal status updated successfully',
+      mealPlan: updatedMealPlan
+    });
+
+  } catch (error) {
+    console.error('Error updating meal status:', error);
+    return res.status(500).json({
+      message: 'Failed to update meal status',
+      error: {
+        code: ERROR_CODES.INTERNAL_ERROR,
+        details: error.message
       }
     });
   }
@@ -680,5 +910,9 @@ module.exports = {
   getDietPlanDay,
   getAllDietPlans,
   trackMeal,
-  deleteMealPlan
+  deleteMealPlan,
+  customMealPlanner,
+  deleteCustomMealPlan,
+  getCustomMealPlan,
+  updateMealStatus
 }; 
