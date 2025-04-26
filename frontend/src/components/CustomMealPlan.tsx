@@ -39,157 +39,131 @@ type MealPlan = {
 };
 
 const CalendarView: React.FC<{
-  days: MealDay[];
-  selectedDate: Date | null;
-  onDateSelect: (date: Date) => void;
-  selectedDayNumber: number | null;
-  onDayNumberSelect: (dayNumber: number) => void;
-  expandedDay: number | null;
-  onExpandDay: (dayNumber: number | null) => void;
-}> = ({ 
-  days, 
-  selectedDate, 
-  onDateSelect, 
-  selectedDayNumber, 
-  onDayNumberSelect,
-  expandedDay,
-  onExpandDay
-}) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-
-  // Get the start and end dates from the meal plan
-  const startDate = days.length > 0 && days[0].date ? new Date(days[0].date) : new Date();
-  const endDate = days.length > 0 ? 
-    (days[days.length - 1].date ? new Date(days[days.length - 1].date!) : 
-     new Date(startDate.getTime() + (days.length - 1) * 24 * 60 * 60 * 1000)) : 
-    new Date();
-
-  // Generate months between start and end dates
-  const months = [];
-  let current = new Date(startDate);
-  current.setDate(1);
+    days: MealDay[];
+    selectedDate: Date | null;
+    onDateSelect: (date: Date) => void;
+    selectedDayNumber: number | null;
+    onDayNumberSelect: (dayNumber: number) => void;
+  }> = ({ days, selectedDate, onDateSelect, selectedDayNumber, onDayNumberSelect }) => {
+    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   
-  while (current <= endDate) {
-    months.push(new Date(current));
-    current.setMonth(current.getMonth() + 1);
-  }
-
-  // If no months in range, show current month
-  if (months.length === 0) {
-    months.push(new Date());
-  }
-
-  // Get completion status for a date
-  const getDayStatus = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    const day = days.find(d => {
-      if (d.date) {
-        return new Date(d.date).toISOString().split('T')[0] === dateStr;
-      }
-      return false;
-    });
+    // Get the start and end dates from the meal plan
+    const startDate = days.length > 0 && days[0].date ? new Date(days[0].date) : new Date();
+    const endDate = days.length > 0 ? 
+      (days[days.length - 1].date ? new Date(days[days.length - 1].date!) : 
+       new Date(startDate.getTime() + (days.length - 1) * 24 * 60 * 60 * 1000)) : 
+      new Date();
+  
+    // Generate months between start and end dates
+    const months = [];
+    let current = new Date(startDate);
+    current.setDate(1);
     
-    if (!day) return null;
-    
-    const totalMeals = day.meals.length;
-    const eatenMeals = day.meals.filter(m => m.eaten).length;
-    
-    if (eatenMeals === 0) return 'missed';
-    if (eatenMeals === totalMeals) return 'completed';
-    return 'partial';
-  };
-
-  // Calculate nutrition for a day
-  const calculateDayNutrition = (dayNumber: number) => {
-    const day = days.find(d => d.dayNumber === dayNumber);
-    if (!day) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    
-    return day.meals.reduce((acc, meal) => {
-      return {
-        calories: acc.calories + (meal.eaten ? meal.nutrition.calories : 0),
-        protein: acc.protein + (meal.eaten ? meal.nutrition.protein : 0),
-        carbs: acc.carbs + (meal.eaten ? meal.nutrition.carbs : 0),
-        fat: acc.fat + (meal.eaten ? meal.nutrition.fat : 0)
-      };
-    }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  };
-
-  // Render a single month
-  const renderMonth = (monthDate: Date) => {
-    const month = monthDate.getMonth();
-    const year = monthDate.getFullYear();
-    
-    // Get first day of month and total days
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    // Create array of days
-    const daysArray = [];
-    for (let i = 1; i <= daysInMonth; i++) {
-      daysArray.push(i);
+    while (current <= endDate) {
+      months.push(new Date(current));
+      current.setMonth(current.getMonth() + 1);
     }
-    
-    // Check if day is in meal plan range
-    const isDayInRange = (day: number) => {
-      const date = new Date(year, month, day);
-      return date >= startDate && date <= endDate;
-    };
-    
-    // Get day status
-    const getStatus = (day: number) => {
-      const date = new Date(year, month, day);
-      return getDayStatus(date);
-    };
-
-    // Get day number for a date
-    const getDayNumber = (day: number) => {
-      const date = new Date(year, month, day);
+  
+    // If no months in range, show current month
+    if (months.length === 0) {
+      months.push(new Date());
+    }
+  
+    // Get completion status for a date
+    const getDayStatus = (date: Date) => {
       const dateStr = date.toISOString().split('T')[0];
-      const dayObj = days.find(d => {
+      const day = days.find(d => {
         if (d.date) {
           return new Date(d.date).toISOString().split('T')[0] === dateStr;
         }
         return false;
       });
-      return dayObj ? dayObj.dayNumber : null;
+      
+      if (!day) return null;
+      
+      const totalMeals = day.meals.length;
+      const eatenMeals = day.meals.filter(m => m.eaten).length;
+      
+      if (eatenMeals === 0) return 'missed';
+      if (eatenMeals === totalMeals) return 'completed';
+      return 'partial';
     };
-
-    return (
-      <div key={`${month}-${year}`} className="mb-8">
-        <h3 className="text-lg font-semibold mb-2">
-          {new Date(year, month).toLocaleString('default', { month: 'long' })} {year}
-        </h3>
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-            <div key={day} className="font-medium text-sm py-1">{day}</div>
-          ))}
-          
-          {Array(firstDay).fill(null).map((_, i) => (
-            <div key={`empty-${i}`} className="py-1"></div>
-          ))}
-          
-          {daysArray.map(day => {
-            const date = new Date(year, month, day);
-            const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-            const dayNumber = getDayNumber(day);
-            const isDayNumberSelected = selectedDayNumber === dayNumber;
-            const isDayExpanded = expandedDay === dayNumber;
-            const status = getStatus(day);
-            const inRange = isDayInRange(day);
-            const nutrition = dayNumber ? calculateDayNutrition(dayNumber) : null;
+  
+    // Render a single month
+    const renderMonth = (monthDate: Date) => {
+      const month = monthDate.getMonth();
+      const year = monthDate.getFullYear();
+      
+      // Get first day of month and total days
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      
+      // Create array of days
+      const daysArray = [];
+      for (let i = 1; i <= daysInMonth; i++) {
+        daysArray.push(i);
+      }
+      
+      // Check if day is in meal plan range
+      const isDayInRange = (day: number) => {
+        const date = new Date(year, month, day);
+        return date >= startDate && date <= endDate;
+      };
+      
+      // Get day status
+      const getStatus = (day: number) => {
+        const date = new Date(year, month, day);
+        return getDayStatus(date);
+      };
+  
+      // Get day number for a date
+      const getDayNumber = (day: number) => {
+        const date = new Date(year, month, day);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayObj = days.find(d => {
+          if (d.date) {
+            return new Date(d.date).toISOString().split('T')[0] === dateStr;
+          }
+          return false;
+        });
+        return dayObj ? dayObj.dayNumber : null;
+      };
+  
+      return (
+        <div key={`${month}-${year}`} className="mb-8">
+          <h3 className="text-lg font-semibold mb-2">
+            {new Date(year, month).toLocaleString('default', { month: 'long' })} {year}
+          </h3>
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              <div key={day} className="font-medium text-sm py-1">{day}</div>
+            ))}
             
-            return (
-              <div key={day} className="relative">
+            {Array(firstDay).fill(null).map((_, i) => (
+              <div key={`empty-${i}`} className="py-1"></div>
+            ))}
+            
+            {daysArray.map(day => {
+              const date = new Date(year, month, day);
+              const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+              const dayNumber = getDayNumber(day);
+              const isDayNumberSelected = selectedDayNumber === dayNumber;
+              const status = getStatus(day);
+              const inRange = isDayInRange(day);
+              
+              return (
                 <button
+                  key={day}
                   onClick={() => {
-                    if (inRange && dayNumber) {
+                    if (inRange) {
                       onDateSelect(date);
-                      onDayNumberSelect(dayNumber);
-                      onExpandDay(isDayExpanded ? null : dayNumber);
+                      if (dayNumber) {
+                        onDayNumberSelect(dayNumber);
+                      }
                     }
                   }}
-                  className={`w-full py-1 rounded-full text-sm ${
+                  className={`py-1 rounded-full text-sm ${
                     isSelected || isDayNumberSelected ? 'bg-blue-100 font-bold' : ''
                   } ${
                     inRange ? 'cursor-pointer hover:bg-gray-100' : 'text-gray-400 cursor-default'
@@ -202,64 +176,43 @@ const CalendarView: React.FC<{
                 >
                   {day}
                 </button>
-                
-                {isDayExpanded && dayNumber && nutrition && (
-                  <div className="absolute z-10 mt-1 w-48 p-2 bg-white border rounded-lg shadow-lg">
-                    <div className="text-xs font-medium mb-1">Day {dayNumber}</div>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
-                      <div>Calories:</div>
-                      <div className="font-medium">{nutrition.calories}kcal</div>
-                      <div>Protein:</div>
-                      <div className="font-medium">{nutrition.protein}g</div>
-                      <div>Carbs:</div>
-                      <div className="font-medium">{nutrition.carbs}g</div>
-                      <div>Fat:</div>
-                      <div className="font-medium">{nutrition.fat}g</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+  
+    return (
+      <div className="bg-white rounded-lg shadow p-4 h-full overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Plan Calendar</h2>
+        </div>
+        
+        <div className="space-y-6">
+          {months.map(monthDate => renderMonth(monthDate))}
+        </div>
+        
+        <div className="mt-6 pt-4 border-t">
+          <h4 className="font-medium mb-2">Legend:</h4>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-green-100 rounded-full mr-2"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-yellow-100 rounded-full mr-2"></div>
+              <span>Partially completed</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-red-100 rounded-full mr-2"></div>
+              <span>Missed</span>
+            </div>
+          </div>
         </div>
       </div>
     );
   };
-
-  return (
-    <div className="bg-white rounded-lg shadow p-4 h-full overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Plan Calendar</h2>
-      </div>
-      
-      <div className="space-y-6">
-        {months.map(monthDate => renderMonth(monthDate))}
-      </div>
-      
-      <div className="mt-6 pt-4 border-t">
-        <h4 className="font-medium mb-2">Legend:</h4>
-        <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-100 rounded-full mr-2"></div>
-            <span>Completed</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-yellow-100 rounded-full mr-2"></div>
-            <span>Partially completed</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-red-100 rounded-full mr-2"></div>
-            <span>Missed</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-blue-100 rounded-full mr-2"></div>
-            <span>Selected</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
   
   
 
@@ -798,42 +751,38 @@ const MealPlanner: React.FC = () => {
 
         {/* Right Sidebar - Calendar - Shows at bottom on mobile, right on larger screens */}
         <div className="lg:w-1/4 order-2 lg:order-3">
-  <CalendarView 
-    days={mealPlans.length > 0 ? mealPlans[0].days : []}
-    selectedDate={selectedDate}
-    onDateSelect={(date) => {
-      setSelectedDate(date);
-      // Find the day that matches this date
-      if (mealPlans.length > 0) {
-        const dateStr = date.toISOString().split('T')[0];
-        const day = mealPlans[0].days.find(d => {
-          if (d.date) {
-            return new Date(d.date).toISOString().split('T')[0] === dateStr;
-          }
-          return false;
-        });
-        if (day) {
-          setSelectedDayNumber(day.dayNumber);
-          setExpandedDay(day.dayNumber);
-        }
-      }
-    }}
-    selectedDayNumber={selectedDayNumber}
-    onDayNumberSelect={(dayNumber) => {
-      setSelectedDayNumber(dayNumber);
-      setExpandedDay(dayNumber);
-      // Find the date for this day number
-      if (mealPlans.length > 0) {
-        const day = mealPlans[0].days.find(d => d.dayNumber === dayNumber);
-        if (day && day.date) {
-          setSelectedDate(new Date(day.date));
-        }
-      }
-    }}
-    expandedDay={expandedDay}
-    onExpandDay={setExpandedDay}
-  />
-</div>
+          <CalendarView 
+            days={mealPlans.length > 0 ? mealPlans[0].days : []}
+            selectedDate={selectedDate}
+            onDateSelect={(date) => {
+              setSelectedDate(date);
+              // Find the day that matches this date
+              if (mealPlans.length > 0) {
+                const dateStr = date.toISOString().split('T')[0];
+                const day = mealPlans[0].days.find(d => {
+                  if (d.date) {
+                    return new Date(d.date).toISOString().split('T')[0] === dateStr;
+                  }
+                  return false;
+                });
+                if (day) {
+                  setSelectedDayNumber(day.dayNumber);
+                }
+              }
+            }}
+            selectedDayNumber={selectedDayNumber}
+            onDayNumberSelect={(dayNumber) => {
+              setSelectedDayNumber(dayNumber);
+              // Find the date for this day number
+              if (mealPlans.length > 0) {
+                const day = mealPlans[0].days.find(d => d.dayNumber === dayNumber);
+                if (day && day.date) {
+                  setSelectedDate(new Date(day.date));
+                }
+              }
+            }}
+          />
+        </div>
       </div>
     </div>
   );
