@@ -116,7 +116,7 @@ const Macros = () => {
     setError('');
   
     try {
-      const API_KEY = "AIzaSyB_VXy2GyKiNYZR_TK9yhJPS33ycs_vfjs"; // Hardcode temporarily for testing
+      const API_KEY = "AIzaSyALMALb6edMsTz1oNBTTyomi57WssdLkUU"; // Hardcode temporarily for testing
       const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key=${API_KEY}`;
   
       const requestData = {
