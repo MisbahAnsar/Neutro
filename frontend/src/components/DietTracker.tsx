@@ -116,6 +116,13 @@ type DietplanssType = {
   days: Day[];
 };
 
+interface EatenMark {
+  dayNumber: number;
+  meals: {
+    eaten: boolean;
+  }[];
+}
+
 // Add this interface near your other interfaces
 interface MealReminder {
   id: number;
@@ -138,7 +145,8 @@ const DietTrackerComponent: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [plans, setPlans] = useState<DietPlan[]>([]);
   const [Dietplanss, setDietplanss] = useState<DietplanssType[]>([]);
-
+  const [completedDays, setCompletedDays] = useState<number[]>([]);
+  const [eatenCompletedDays, setEatenCompletedDays] = useState<number[]>([]);
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/diet-plans`)
@@ -150,6 +158,41 @@ const DietTrackerComponent: React.FC = () => {
         console.error('Error fetching diet plans:', error);
         setLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    const fetchEatenCompletion = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/diet-plans');
+        const data = await response.json();
+        const plan = data.dietPlans?.[0]; // adjust if needed
+        console.log("Fetched Plan:", plan);
+        if (plan) {
+          const totalDays = plan.planDuration || plan.days.length;
+  
+          const completedDayNumbers: number[] = [];
+  
+          for (let dayNumber = 1; dayNumber <= totalDays; dayNumber++) {
+            const dayResponse = await fetch(`${API_BASE_URL}/diet-plans/days/${dayNumber}`);
+            const dayData = await dayResponse.json();
+            const day: EatenMark = dayData.day; // assuming API returns { day: {...} }
+  
+            if (day?.meals && day.meals.length > 0) {
+              const allEatenTrue = day.meals.every((meal) => meal.eaten);
+              if (allEatenTrue) {
+                completedDayNumbers.push(day.dayNumber);
+              }
+            }
+          }
+  
+          setEatenCompletedDays(completedDayNumbers);
+        }
+      } catch (error) {
+        console.error('Error fetching eaten completion days:', error);
+      }
+    };
+  
+    fetchEatenCompletion();
   }, []);
 
    // Add this useEffect hook near your other useEffect hooks
@@ -199,6 +242,12 @@ const DietTrackerComponent: React.FC = () => {
     } catch (err) {
       console.error("Error deleting diet plan:", err);
     }
+  };
+
+  const isDayComplete = (dayNumber: number) => {
+    if (!dietTracker) return false;
+    const dayTracker = dietTracker.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
+    return dayTracker?.completionPercentage === 100;
   };
 
   const calculateCurrentNutrition = () => {
@@ -308,6 +357,56 @@ const DietTrackerComponent: React.FC = () => {
     }
   };
 
+  const renderCalendarCell = (date: Date, index: number) => {
+    const dayNumber = getDayNumberForDate(date);
+    const isInMealPlan = isDateInMealPlan(date);
+    const isToday = date.toDateString() === new Date().toDateString();
+    const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
+    
+    const isAllEaten = dayNumber !== null && 
+    currentDayPlan?.dayNumber === dayNumber && 
+    currentDayPlan.meals.every(meal => meal.eaten);
+
+    let status = '';
+    if (dayTracker) {
+      if (dayTracker.completionPercentage === 100) status = 'completed';
+      else if (dayTracker.completionPercentage > 0) status = 'partial';
+      else if (dayTracker.completionPercentage === 0 && date < new Date()) status = 'missed';
+    }  else if (isAllEaten) {
+      // If no tracker but diet plan says fully eaten
+      status = 'completed';
+    }
+
+    return (
+      <button
+        key={index}
+        onClick={() => dayNumber && fetchDayPlanDetails(dayNumber)}
+        disabled={!isInMealPlan}
+        className={`h-8 flex items-center justify-center rounded-lg text-sm relative ${
+          !isInMealPlan
+            ? 'text-gray-300'
+            : selectedDay === dayNumber
+              ? 'bg-purple-200 text-purple-700 font-medium'
+              : status === 'completed'
+                ? 'bg-green-100 text-green-700'
+                : status === 'partial'
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : status === 'missed'
+                    ? 'bg-red-100 text-red-700'
+                    : isToday
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'hover:bg-gray-100'
+        }`}
+      >
+        {date.getDate()}
+        {/* Green dot indicator for complete days */}
+        {status === 'completed' && (
+          <span className="absolute bottom-1 w-2 h-2 rounded-full bg-green-500"></span>
+        )}
+      </button>
+    );
+  };
+
   const handleMealStatusUpdate = async (mealId: string, eaten: boolean) => {
     if (!dietTracker || !currentDayPlan) return;
     
@@ -324,6 +423,12 @@ const DietTrackerComponent: React.FC = () => {
           }
           return meal;
         });
+
+        const allEaten = updatedMeals.every(meal => meal.eaten);
+        if (allEaten) {
+          // Update completed days state if needed
+          setEatenCompletedDays(prev => [...prev, prevDayPlan.dayNumber]);
+        }
         
         return {
           ...prevDayPlan,
@@ -753,8 +858,12 @@ const MEAL_REMINDERS: MealReminder[] = [
         </div>
       )}
 
-<div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Your Dietplanss</h1>
+<div className="max-w-7xl mx-auto p-6">
+  <h1 className="text-2xl font-bold mb-6">Your Dietplanss</h1>
+
+  <div className="flex flex-col lg:flex-row gap-6">
+    {/* Dietplans Section */}
+    <div className="flex-1">
       {Dietplanss.map((plan) => (
         <div key={plan._id} className="border border-gray-300 p-4 rounded-xl shadow mb-6">
           <div className="flex justify-between items-center mb-2">
@@ -776,123 +885,6 @@ const MEAL_REMINDERS: MealReminder[] = [
           </div>
         </div>
       ))}
-    </div>
-      
-      {/* Main content with side-by-side layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-<ToastContainer
-  position="top-right"
-  aria-label="Toast notifications"
-  autoClose={10000}
-  newestOnTop={false}
-  closeOnClick
-  rtl={false}
-  pauseOnFocusLoss
-  draggable
-  pauseOnHover
-  theme="light"
-/>
-        {/* Calendar section */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Plan Calendar</h2>
-          
-          {/* Month navigation */}
-          <div className="bg-white rounded-lg mb-4">
-            <div className="flex items-center justify-between px-2 py-3">
-              <button
-                onClick={() => navigateMonth('prev')}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <h3 className="text-base font-medium text-gray-900">
-                {getMonthName(currentMonth)}
-              </h3>
-              <button
-                onClick={() => navigateMonth('next')}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ChevronRightIcon className="h-5 w-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
-
-          {/* Calendar grid */}
-          <div className="mb-4">
-            <div className="grid grid-cols-7 mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                <div key={day} className="text-center text-sm text-gray-500 py-1">
-                  {day}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, index) => (
-                <div key={`empty-${index}`} className="h-8" />
-              ))}
-              {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, index) => {
-                const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), index + 1);
-                const dayNumber = getDayNumberForDate(date);
-                const isInMealPlan = isDateInMealPlan(date);
-                const isToday = date.toDateString() === new Date().toDateString();
-                const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
-                
-                let status = '';
-                if (dayTracker) {
-                  if (dayTracker.completionPercentage === 100) status = 'completed';
-                  else if (dayTracker.completionPercentage > 0) status = 'partial';
-                  else if (dayTracker.completionPercentage === 0 && date < new Date()) status = 'missed';
-                }
-
-                return (
-                  <button
-                    key={index}
-                    onClick={() => dayNumber && fetchDayPlanDetails(dayNumber)}
-                    disabled={!isInMealPlan}
-                    className={`h-8 flex items-center justify-center rounded-lg text-sm ${
-                      !isInMealPlan
-                        ? 'text-gray-300'
-                        : selectedDay === dayNumber
-                          ? 'bg-purple-200 text-purple-700 font-medium'
-                          : status === 'completed'
-                            ? 'bg-green-100 text-green-700'
-                            : status === 'partial'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : status === 'missed'
-                                ? 'bg-red-100 text-red-700'
-                                : isToday
-                                  ? 'bg-purple-100 text-purple-700'
-                                  : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="border-t pt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Legend:</p>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
-                <span className="text-sm text-gray-600">Completed</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-                <span className="text-sm text-gray-600">Partially completed</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
-                <span className="text-sm text-gray-600">Missed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Meal plans section */}
         <div className="md:col-span-2">
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             {loading ? (
@@ -1106,6 +1098,94 @@ const MEAL_REMINDERS: MealReminder[] = [
             )}
           </div>
         </div>
+    </div>
+
+    {/* Calendar Section */}
+    <div className="w-full lg:w-[350px]">
+      <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
+        <h2 className="text-xl font-bold mb-4">Plan Calendar</h2>
+
+        {/* Month navigation */}
+        <div className="bg-white rounded-lg mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => navigateMonth('prev')}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <h3 className="text-base font-medium text-gray-900">
+              {getMonthName(currentMonth)}
+            </h3>
+            <button
+              onClick={() => navigateMonth('next')}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ChevronRightIcon className="h-5 w-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
+
+        {/* Calendar grid */}
+        <div className="mb-4">
+          <div className="grid grid-cols-7 gap-1 text-xs sm:text-sm">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+              <div key={day} className="text-center text-gray-500 py-1">
+                {day}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: getFirstDayOfMonth(currentMonth) }).map((_, index) => (
+              <div key={`empty-${index}`} className="h-8" />
+            ))}
+            {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, index) => {
+              const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), index + 1);
+              return renderCalendarCell(date, index);
+            })}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="border-t pt-4">
+          <p className="text-sm font-medium text-gray-700 mb-2">Legend:</p>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
+              <span className="text-sm text-gray-600">Completed</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+              <span className="text-sm text-gray-600">Partially completed</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+              <span className="text-sm text-gray-600">Missed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+      
+      {/* Main content with side-by-side layout */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+<ToastContainer
+  position="top-right"
+  aria-label="Toast notifications"
+  autoClose={10000}
+  newestOnTop={false}
+  closeOnClick
+  rtl={false}
+  pauseOnFocusLoss
+  draggable
+  pauseOnHover
+  theme="light"
+/>
+        
       </div>
     </div>
   );
