@@ -184,6 +184,15 @@ const DietTrackerComponent: React.FC = () => {
               }
             }
           }
+
+          plan.days.forEach((day: Day) => {
+            if (day.meals && day.meals.length > 0) {
+              const allEaten = day.meals.every(meal => meal.eaten);
+              if (allEaten) {
+                completedDayNumbers.push(day.dayNumber);
+              }
+            }
+          });
   
           setEatenCompletedDays(completedDayNumbers);
         }
@@ -363,9 +372,10 @@ const DietTrackerComponent: React.FC = () => {
     const isToday = date.toDateString() === new Date().toDateString();
     const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
     
-    const isAllEaten = dayNumber !== null && 
-    currentDayPlan?.dayNumber === dayNumber && 
-    currentDayPlan.meals.every(meal => meal.eaten);
+    const isAllEaten = dayNumber !== null && eatenCompletedDays.includes(dayNumber);
+    const dayPlan = Dietplanss[0]?.days.find(d => d.dayNumber === dayNumber);
+    const someEaten = dayPlan?.meals.some(meal => meal.eaten) && !isAllEaten;
+
 
     let status = '';
     if (dayTracker) {
@@ -384,23 +394,23 @@ const DietTrackerComponent: React.FC = () => {
         disabled={!isInMealPlan}
         className={`h-8 flex items-center justify-center rounded-lg text-sm relative ${
           !isInMealPlan
-            ? 'text-gray-300'
-            : selectedDay === dayNumber
-              ? 'bg-purple-200 text-purple-700 font-medium'
-              : status === 'completed'
-                ? 'bg-green-100 text-green-700'
-                : status === 'partial'
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : status === 'missed'
-                    ? 'bg-red-100 text-red-700'
-                    : isToday
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'hover:bg-gray-100'
+          ? 'text-gray-300'
+          : selectedDay === dayNumber
+            ? 'bg-purple-200 text-purple-700 font-medium'
+            : isAllEaten
+              ? 'bg-green-300 text-black'
+              : someEaten
+                ? 'bg-yellow-100 text-yellow-700'
+                : date < new Date() && isInMealPlan
+                  ? 'bg-red-100 text-red-700'
+                  : isToday
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'hover:bg-gray-100'
         }`}
       >
         {date.getDate()}
         {/* Green dot indicator for complete days */}
-        {status === 'completed' && (
+        {isAllEaten && (
           <span className="absolute bottom-1 w-2 h-2 rounded-full bg-green-500"></span>
         )}
       </button>
