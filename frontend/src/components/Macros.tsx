@@ -116,47 +116,64 @@ const Macros = () => {
     setError('');
   
     try {
-      const API_KEY = "AIzaSyALMALb6edMsTz1oNBTTyomi57WssdLkUU"; // Hardcode temporarily for testing
-      const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key=${API_KEY}`;
-  
-      const requestData = {
-        contents: [{
-          parts: [
-            { 
-              text: "Analyze this food image and return ONLY valid JSON: {foodName: string, calories: number, protein: number, carbs: number, fats: number}"
-            },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: imageBase64
-              }
-            }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0.1 // Makes responses more consistent
-        }
-      };
-  
-      const response = await axios.post(API_URL, requestData, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-  
-      // Extract the JSON from the response
-      const responseText = response.data.candidates[0].content.parts[0].text;
-      const jsonResponse = JSON.parse(responseText.trim());
-  
-      setFoodAnalysisResults(jsonResponse);
-  
-    } catch (error) {
-      console.error("Error:", error);
-      setError("Failed to analyze. Make sure your API key is valid and the image is clear.");
-    } finally {
-      setIsAnalyzingImage(false);
+      const API_KEY = "46a5451eebc04cbfb2df9e969c89d841"; // Get from https://spoonacular.com/food-api
+      
+      // Note: Spoonacular requires image URL, so you'd need to upload first
+      // For demo, we'll use their text endpoint
+      const byteCharacters = atob(imageBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
-  };
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+    // Create FormData (required for image upload)
+    const formData = new FormData();
+    formData.append('file', blob, 'food-image.jpg');
+
+    // Send to Spoonacular
+    const response = await axios.post(
+      `https://api.spoonacular.com/food/images/classify?apiKey=${API_KEY}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data', // Required for image upload
+        },
+      }
+    );
+
+    const foodName = response.data.category.name;
+    
+    // Now fetch nutrition data (same as before)
+    const nutritionResponse = await axios.get(
+      `https://api.spoonacular.com/food/ingredients/search?query=${encodeURIComponent(foodName)}&apiKey=${API_KEY}`
+    );
+
+    const foodId = nutritionResponse.data.results[0].id;
+    
+    const detailsResponse = await axios.get(
+      `https://api.spoonacular.com/food/ingredients/${foodId}/information?amount=100&apiKey=${API_KEY}`
+    );
+
+    const nutrients = detailsResponse.data.nutrition.nutrients;
+    const findNutrient = (name: string) => nutrients.find((n: any) => n.name === name)?.amount || 0;
+
+    setFoodAnalysisResults({
+      foodName,
+      calories: findNutrient("Calories"),
+      protein: findNutrient("Protein"),
+      carbs: findNutrient("Carbohydrates"),
+      fats: findNutrient("Fat"),
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    setError("Failed to analyze. Ensure the image is clear and try again.");
+  } finally {
+    setIsAnalyzingImage(false);
+  }
+};
   
   
   // Helper function to extract JSON from response

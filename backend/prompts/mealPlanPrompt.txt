@@ -1,30 +1,36 @@
-Generate EXACTLY {{planDuration}} days of Indian meals ({{mealPerDay}} meals/day) for:
-- {{age}}yo {{gender}}
-- {{weight}}kg, {{height}}cm
-- {{activityLevel}} activity
+Generate EXACTLY {{planDuration}} days of Indian VEGETARIAN meals ({{mealPerDay}} meals/day) with:
+
+USER PROFILE:
+- Age: {{age}}
+- Gender: {{gender}}
+- Weight: {{weight}}kg
+- Height: {{height}}cm
+- Activity: {{activityLevel}}
 - Goal: {{fitnessGoal}}
-- Diet: {{dietType}}
-- Food: {{foodType}}
+- Strict Diet: {{foodType}} (MUST BE 100% VEGETARIAN)
 - Allergies: {{restrictionsAndAllergies || 'None'}}
 
-CRITICAL INSTRUCTIONS:
-1. OUTPUT EXACTLY {{planDuration}} DAYS - DO NOT STOP EARLY
-2. {{foodType}} RULES:
-   • veg: Only dairy + plants
-   • non-veg: Include eggs/chicken/fish
-   • both: Mix appropriately
-3. EACH DAY MUST HAVE:
-   • Day number (1 to {{planDuration}})
-   • {{mealPerDay}} meals with:
-     - type (Breakfast/Lunch/etc)
-     - dishName
-     - description (20 words)
-     - cookingMethod
-     - nutrition (calories, protein, carbs, fat)
-     - 3 keyIngredients
+STRICT VEGETARIAN RULES:
+1. ABSOLUTELY NO meat, fish, poultry, eggs, or animal flesh
+2. Only allowed:
+   • Dairy (milk, yogurt, paneer)
+   • Plant-based foods (grains, legumes, vegetables, fruits, nuts)
+3. Reject any recipe containing:
+   - Chicken, fish, eggs, meat, seafood
+   - Any non-vegetarian ingredients
+   - Hidden animal products (gelatin, fish sauce, etc.)
 
-FAILSAFE:
-If constraints can't be met:
+MEAL REQUIREMENTS PER DAY:
+• {{mealPerDay}} complete meals (Breakfast, Lunch, Snack, Dinner)
+• Each meal must include:
+  - type (e.g., "Breakfast")
+  - dishName (traditional Indian name)
+  - description (20+ words)
+  - cookingMethod
+  - nutrition (calories, protein, carbs, fat)
+  - 3 keyIngredients (must be vegetarian)
+
+FAILSAFE TEMPLATE (use if constraints can't be met):
 {
   "days": [
     {
@@ -32,31 +38,34 @@ If constraints can't be met:
       "meals": [
         {
           "type": "Breakfast",
-          "dishName": "{{foodType}} Poha",
-          "description": "Light flattened rice with veggies{{foodType==='non-veg'?' and eggs':''}}",
+          "dishName": "Vegetable Upma",
+          "description": "Savory semolina porridge with carrots, peas and mild spices, cooked in water or milk",
           "cookingMethod": "Stir-fried",
           "nutrition": {
             "calories": 300,
-            "protein": {{foodType==='veg'? '8' : '12'}},
+            "protein": 8,
             "carbs": 45,
             "fat": 7
           },
-          "keyIngredients": [
-            "poha",
-            "peanuts",
-            {{foodType==='veg'? '"curry leaves"' : '"eggs"'}}
-          ]
+          "keyIngredients": ["semolina", "vegetables", "cumin"]
         }
       ]
     }
   ]
 }
 
-FORMAT STRICTLY AS:
+OUTPUT FORMAT:
 {
   "days": [
-    { /* Day 1 */ },
+    { /* Day 1 - ALL {{mealPerDay}} MEALS */ },
     { /* Day 2 */ },
-    // ... ALL {{planDuration}} DAYS MUST BE PRESENT
+    // ... MUST INCLUDE ALL {{planDuration}} DAYS
   ]
 }
+
+VALIDATION CHECK:
+Before responding, verify:
+1. ZERO non-vegetarian items
+2. All {{planDuration}} days present
+3. Each day has exactly {{mealPerDay}} meals
+4. Nutrition values are calculated
