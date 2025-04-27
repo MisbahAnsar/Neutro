@@ -372,12 +372,7 @@ const MealPlanner: React.FC = () => {
               >
                 Generate New
               </button>
-              <button
-                className={`py-2 px-4 font-medium ${activeTab === 'saved' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-                onClick={() => setActiveTab('saved')}
-              >
-                Saved Plans
-              </button>
+              
             </div>
 
             {activeTab === 'generate' ? (
