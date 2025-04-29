@@ -73,6 +73,52 @@ const ProfileOverview = () => {
   // Calculate daily calorie target based on fitness goal
   const dailyCalories = calculateDailyCalories(profile);
 
+  function calculateProtein(profile: UserProfile): { value: number; isCapped: boolean } {
+    const proteinPerKg = profile.fitnessGoal === 'weight-loss' ? 2.2 : 1.6;
+    const calculatedProtein = profile.weight * proteinPerKg;
+    const cappedValue = Math.min(Math.round(calculatedProtein), 150);
+    return {
+      value: cappedValue,
+      isCapped: calculatedProtein > 150
+    };
+  }
+  
+  function calculateCarbs(profile: UserProfile): { value: number; isCapped: boolean } {
+    const calories = calculateDailyCalories(profile);
+    let carbPercentage = 0.4;
+    if (profile.fitnessGoal === 'weight-loss') carbPercentage = 0.3;
+    if (profile.fitnessGoal === 'weight-gain') carbPercentage = 0.5;
+    
+    const calculatedCarbs = (calories * carbPercentage) / 4;
+    const cappedValue = Math.min(Math.round(calculatedCarbs), 150);
+    return {
+      value: cappedValue,
+      isCapped: calculatedCarbs > 150
+    };
+  }
+  
+  function calculateFats(profile: UserProfile): { value: number; isCapped: boolean } {
+    const calories = calculateDailyCalories(profile);
+    const calculatedFats = (calories * 0.3) / 9;
+    const cappedValue = Math.min(Math.round(calculatedFats), 150);
+    return {
+      value: cappedValue,
+      isCapped: calculatedFats > 150
+    };
+  }
+  
+  function getMacroSplit(profile: UserProfile): string {
+    const protein = calculateProtein(profile).value;
+    const carbs = calculateCarbs(profile).value;
+    const fats = calculateFats(profile).value;
+    const total = protein + carbs + fats;
+    
+    const proteinPct = Math.round((protein / total) * 100);
+    const carbsPct = Math.round((carbs / total) * 100);
+    const fatsPct = Math.round((fats / total) * 100);
+    
+    return `${carbsPct}% Carbs, ${proteinPct}% Protein, ${fatsPct}% Fat`;
+  }
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -204,14 +250,23 @@ const ProfileOverview = () => {
               ]}
             />
             <MetricCard 
-              title="Nutrition Plan"
-              items={[
-                { label: 'Macro Split', value: getMacroSplit(profile.fitnessGoal) },
-                { label: 'Recommended Protein', value: `${calculateProtein(profile)}g per day` },
-                { label: 'Recommended Carbs', value: `${calculateCarbs(profile)}g per day` },
-                { label: 'Recommended Fats', value: `${calculateFats(profile)}g per day` }
-              ]}
-            />
+  title="Nutrition Plan"
+  items={[
+    { label: 'Macro Split', value: getMacroSplit(profile) },
+    { 
+      label: 'Recommended Protein', 
+      value: `${calculateProtein(profile).value}g${calculateProtein(profile).isCapped ? ' (max reached)' : ''}` 
+    },
+    { 
+      label: 'Recommended Carbs', 
+      value: `${calculateCarbs(profile).value}g${calculateCarbs(profile).isCapped ? ' (max reached)' : ''}` 
+    },
+    { 
+      label: 'Recommended Fats', 
+      value: `${calculateFats(profile).value}g${calculateFats(profile).isCapped ? ' (max reached)' : ''}` 
+    }
+  ]}
+/>
           </div>
         </div>
 
