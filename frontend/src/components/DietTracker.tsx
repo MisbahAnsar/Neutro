@@ -114,6 +114,8 @@ type DietplanssType = {
   dailyMacros: Nutrition;
   status: string;
   days: Day[];
+  createdAt: string; // Add this line
+  __v?: number; // You might want to add this too since it's in your response
 };
 
 interface EatenMark {
@@ -211,6 +213,12 @@ const DietTrackerComponent: React.FC = () => {
     }
   }, [dietTracker]);
 
+  useEffect(() => {
+    if (Dietplanss.length && Dietplanss[0]?.createdAt) {
+      const planStartDate = new Date(Dietplanss[0].createdAt);
+      setCurrentMonth(new Date(planStartDate.getFullYear(), planStartDate.getMonth(), 1));
+    }
+  }, [Dietplanss]);
 
   useEffect(() => {
     // Check for token
@@ -367,6 +375,14 @@ const DietTrackerComponent: React.FC = () => {
   };
 
   const renderCalendarCell = (date: Date, index: number) => {
+    if (!Dietplanss.length || !Dietplanss[0]?.createdAt) {
+      return (
+        <div key={index} className="h-8 flex items-center justify-center rounded-lg text-sm text-gray-300">
+          {date.getDate()}
+        </div>
+      );
+    }
+    const planStartDate = new Date(Dietplanss[0].createdAt);
     const dayNumber = getDayNumberForDate(date);
     const isInMealPlan = isDateInMealPlan(date);
     const isToday = date.toDateString() === new Date().toDateString();
@@ -401,8 +417,8 @@ const DietTrackerComponent: React.FC = () => {
               ? 'bg-green-300 text-black'
               : someEaten
                 ? 'bg-yellow-100 text-yellow-700'
-                : date < new Date() && isInMealPlan
-                  ? 'bg-red-100 text-red-700'
+                : date < planStartDate
+                ? 'bg-red-100 text-red-700'
                   : isToday
                     ? 'bg-purple-100 text-purple-700'
                     : 'hover:bg-gray-100'
@@ -663,49 +679,6 @@ const MEAL_REMINDERS: MealReminder[] = [
     if (percentage >= 50) return 'bg-orange-500';
     return 'bg-red-500';
   };
-  
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  // Add these helper functions after the existing utility functions
-  const getCalendarDays = (startDate: string, totalDays: number) => {
-    const start = new Date(startDate);
-    const days = [];
-    
-    // Get the first day of the month
-    const firstDay = new Date(start.getFullYear(), start.getMonth(), 1);
-    // Get the last day of the month
-    const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0);
-    
-    // Add empty cells for days before the start date
-    for (let i = 0; i < firstDay.getDay(); i++) {
-      days.push({ date: null, dayNumber: null, isCurrentMonth: false });
-    }
-    
-    // Add days of the month
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      const currentDate = new Date(start.getFullYear(), start.getMonth(), i);
-      const dayNumber = Math.floor((currentDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      
-      days.push({
-        date: currentDate,
-        dayNumber: dayNumber > 0 && dayNumber <= totalDays ? dayNumber : null,
-        isCurrentMonth: true
-      });
-    }
-    
-    return days;
-  };
-
-  const getWeekDays = () => {
-    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  };
 
   // Add these helper functions after the existing utility functions
   const getMonthName = (date: Date) => {
@@ -734,20 +707,24 @@ const MEAL_REMINDERS: MealReminder[] = [
   };
 
   const isDateInMealPlan = (date: Date) => {
-    if (!dietTracker?.startDate) return false;
-    const startDate = new Date(dietTracker.startDate);
+    if (!Dietplanss.length || !Dietplanss[0]?.createdAt || !Dietplanss[0]?.planDuration) return false;
+
+    // if (!dietTracker?.startDate) return false;
+    const startDate = new Date(Dietplanss[0].createdAt);
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + (dietTracker.totalDays - 1));
+    endDate.setDate(endDate.getDate() + (Dietplanss[0].planDuration - 1));
     
     return date >= startDate && date <= endDate;
   };
 
   const getDayNumberForDate = (date: Date) => {
-    if (!dietTracker?.startDate) return null;
-    const startDate = new Date(dietTracker.startDate);
+    if (!Dietplanss.length || !Dietplanss[0]?.createdAt || !Dietplanss[0]?.planDuration) return null;
+    
+    const startDate = new Date(Dietplanss[0].createdAt);
     const diffTime = date.getTime() - startDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays > 0 && diffDays <= dietTracker.totalDays ? diffDays : null;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    
+    return diffDays > 0 && diffDays <= Dietplanss[0].planDuration ? diffDays : null;
   };
 
   if (loading) {
@@ -905,10 +882,10 @@ const MEAL_REMINDERS: MealReminder[] = [
             ) : currentDayPlan && dietTracker ? (
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold flex items-center">
+                  {/* <h2 className="text-xl font-bold flex items-center">
                     <Calendar className="h-5 w-5 mr-2 text-green-500" />
                     {formatShortDate(getDateForDay(dietTracker.startDate, currentDayPlan.dayNumber))}
-                  </h2>
+                  </h2> */}
                   
                   {currentDayTracker && (
                     <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
