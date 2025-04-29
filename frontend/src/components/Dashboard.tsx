@@ -14,6 +14,7 @@ import Profile from './Profile';
 import EditProfile from './EditProfile';
 import Macros from './Macros';
 import MealPlanner from './CustomMealPlan';
+import TwoComponentToggle from './Schedule';
 
 interface DashboardData {
   user: {
@@ -337,15 +338,6 @@ function Dashboard() {
                   }}
                 />
                 <NavItem 
-                  icon={<LineChart size={20} />} 
-                  text="Custom Meal Plan" 
-                  active={activeSection === 'customplan'} 
-                  onClick={() => {
-                    setActiveSection('customplan');
-                    setSidebarOpen(false);
-                  }}
-                />
-                <NavItem 
                   icon={<User size={20} />} 
                   text="Profile" 
                   active={activeSection === 'profile'} 
@@ -379,17 +371,6 @@ function Dashboard() {
               <p className="px-3 text-xs font-medium text-indigo-200 uppercase tracking-wider">
                 Settings
               </p>
-              <div className="mt-2 space-y-1">
-                <NavItem 
-                  icon={<Settings size={20} />} 
-                  text="Preferences" 
-                  active={activeSection === 'preferences'} 
-                  onClick={() => {
-                    setActiveSection('preferences');
-                    setSidebarOpen(false);
-                  }}
-                />
-              </div>
               <div className="mt-2 space-y-1">
                 <NavItem 
                   icon={<Settings size={20} />} 
@@ -523,7 +504,7 @@ function Dashboard() {
                 <DietPlanner />
               )
               : activeSection === 'schedule' ? (
-                <DietTracker />
+                <TwoComponentToggle />
               )
               : activeSection === 'community' ? (
                 <CommunityWall />
@@ -536,9 +517,6 @@ function Dashboard() {
               )
               : activeSection === 'macros' ? (
                 <Macros />
-              )
-              : activeSection === 'customplan' ? (
-                <MealPlanner />
               )
               : dashboardData && (
                 <div className="space-y-8">
