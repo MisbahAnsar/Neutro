@@ -1,404 +1,401 @@
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Upload, ArrowRight } from 'lucide-react';
-import axios from 'axios';
+import { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, X, Loader2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
 
-interface FoodAnalysisResult {
-    analysis?: string;
-    foodName: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  }
+type MacroData = {
+  food_name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+};
 
-
-const Macros = () => {
-    const [imageBase64, setImageBase64] = useState<string>('');
-    const [isAnalyzingImage, setIsAnalyzingImage] = useState<boolean>(false);
-    const [foodAnalysisResults, setFoodAnalysisResults] = useState<FoodAnalysisResult | null>(null);
-    const [error, setError] = useState<string>('');
-    const [showCamera, setShowCamera] = useState<boolean>(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+export default function FoodMacroAnalyzer() {
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [macros, setMacros] = useState<MacroData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [captureMode, setCaptureMode] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   
-
+  const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=AIzaSyA-xsH1XeeMzRgxo1tn3rUX03diW4CCLgA";
   
-  const gradientText = "bg-gradient-to-r from-purple-500 via-purple-500 to-sky-500 bg-clip-text text-transparent";
+  // Clean up camera resources when component unmounts
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
   
-  // Start camera stream
-  const startCamera = async () => {
-    setShowCamera(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
+  // Effect to initialize camera when capture mode is turned on
+  useEffect(() => {
+    if (captureMode) {
+      const initCamera = async () => {
+        try {
+          // Request camera permissions
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Camera access is not supported in your browser");
+          }
+          
+          // Stop any existing stream first
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+          }
+          
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } // Prefer rear camera on mobile
+          });
+          
+          streamRef.current = stream;
+          
+          // Small delay to ensure DOM is ready
+          setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.play().catch(err => {
+                console.error("Error playing video:", err);
+                setError("Could not play video stream: " + err.message);
+              });
+              setError(null);
+            } else {
+              throw new Error("Video element not available after initialization");
+            }
+          }, 100);
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Unknown camera error";
+          setError("Could not access camera: " + errorMessage);
+          setCaptureMode(false);
+        }
+      };
+      
+      initCamera();
+    } else {
+      // Clean up when leaving capture mode
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject = null;
       }
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      setError("Could not access camera. Please check permissions or try uploading an image instead.");
     }
-  };
+  }, [captureMode]);
   
-  // Stop camera stream
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    setShowCamera(false);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    setImage(file);
+    createPreview(file);
   };
-  
-  // Capture image from camera
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      if (!context) {
-        console.error("Could not get 2D context from canvas");
-        return;
-      }
 
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      // Draw video frame to canvas
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Convert canvas to base64
-      const base64Data = canvas.toDataURL('image/jpeg').split(",")[1];
-      setImageBase64(base64Data);
-      
-      // Stop camera after capturing
-      stopCamera();
-    }
-  };
-  
-  // Handle file upload
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const createPreview = (file: File) => {
     const reader = new FileReader();
-
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      // Remove the "data:image/jpeg;base64," part
-      const base64Data = result.split(",")[1];
-      setImageBase64(base64Data);
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      if (e.target?.result) {
+        setImagePreview(e.target.result as string);
+      }
     };
-
     reader.readAsDataURL(file);
   };
-  
-  // Trigger file input click
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+
+  const startCamera = () => {
+    setCaptureMode(true);
   };
 
-  // Analyze food using Google Gemini API
-  const analyzeFood = async () => {
-    if (!imageBase64) {
-      setError('Please capture or upload an image first');
+  const stopCamera = () => {
+    setCaptureMode(false);
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video) {
+      setError("Video element not available");
       return;
     }
-  
-    setIsAnalyzingImage(true);
-    setFoodAnalysisResults(null);
-    setError('');
-  
-    try {
-      const API_KEY = "46a5451eebc04cbfb2df9e969c89d841"; // Get from https://spoonacular.com/food-api
-      
-      // Note: Spoonacular requires image URL, so you'd need to upload first
-      // For demo, we'll use their text endpoint
-      const byteCharacters = atob(imageBase64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    
+    // Make sure video is playing and has dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setError("Camera not ready yet. Please wait a moment.");
+      return;
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'image/jpeg' });
-
-    // Create FormData (required for image upload)
-    const formData = new FormData();
-    formData.append('file', blob, 'food-image.jpg');
-
-    // Send to Spoonacular
-    const response = await axios.post(
-      `https://api.spoonacular.com/food/images/classify?apiKey=${API_KEY}`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data', // Required for image upload
-        },
-      }
-    );
-
-    const foodName = response.data.category.name;
     
-    // Now fetch nutrition data (same as before)
-    const nutritionResponse = await axios.get(
-      `https://api.spoonacular.com/food/ingredients/search?query=${encodeURIComponent(foodName)}&apiKey=${API_KEY}`
-    );
-
-    const foodId = nutritionResponse.data.results[0].id;
-    
-    const detailsResponse = await axios.get(
-      `https://api.spoonacular.com/food/ingredients/${foodId}/information?amount=100&apiKey=${API_KEY}`
-    );
-
-    const nutrients = detailsResponse.data.nutrition.nutrients;
-    const findNutrient = (name: string) => nutrients.find((n: any) => n.name === name)?.amount || 0;
-
-    setFoodAnalysisResults({
-      foodName,
-      calories: findNutrient("Calories"),
-      protein: findNutrient("Protein"),
-      carbs: findNutrient("Carbohydrates"),
-      fats: findNutrient("Fat"),
-    });
-
-  } catch (error) {
-    console.error("Error:", error);
-    setError("Failed to analyze. Ensure the image is clear and try again.");
-  } finally {
-    setIsAnalyzingImage(false);
-  }
-};
-  
-  
-  // Helper function to extract JSON from response
-  const extractJson = (text: string): FoodAnalysisResult | null => {
     try {
-      const jsonMatch = text.match(/{[\s\S]*?}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-    } catch {
-      return null;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error("Could not create canvas context");
+      }
+      
+      ctx.drawImage(video, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], "captured-food.jpg", { type: "image/jpeg" });
+          setImage(file);
+          createPreview(file);
+          stopCamera();
+        } else {
+          throw new Error("Failed to create image blob");
+        }
+      }, 'image/jpeg', 0.9);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to capture photo";
+      setError(errorMessage);
     }
   };
   
-  // Better error handling
-  const getErrorMessage = (error: any): string => {
-    if (error.response) {
-      switch (error.response.status) {
-        case 401: return "Invalid API key - please check your configuration";
-        case 403: return "API access denied - check your Google Cloud permissions";
-        case 429: return "Too many requests - try again later";
-        default: return `API error: ${error.response.data?.error?.message || 'Unknown error'}`;
-      }
+  const analyzeImage = async () => {
+    if (!image) {
+      setError("Please select or capture an image first");
+      return;
     }
-    return "Network error - please check your connection";
+    
+    setLoading(true);
+    setError(null);
+    setMacros(null);
+    
+    try {
+      const base64Image = await convertToBase64(image);
+      
+      if (!base64Image) {
+        throw new Error("Failed to convert image to Base64");
+      }
+      
+      const base64Data = base64Image.split(',')[1];
+      
+      if (!base64Data) {
+        throw new Error("Invalid Base64 image data");
+      }
+      
+      const requestData = {
+        contents: [
+          {
+            parts: [
+              {
+                text: "Analyze this food image and provide the macronutrient information. Return the result in JSON format with the following structure: {\"food_name\": \"Name of the food\", \"calories\": number, \"protein_g\": number, \"carbs_g\": number, \"fat_g\": number}. Only respond with the JSON, no other text."
+              },
+              {
+                inline_data: {
+                  mime_type: image.type,
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ]
+      };
+      
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+        const textResponse = data.candidates[0].content.parts[0].text;
+        const jsonMatch = textResponse.match(/\{.*\}/s);
+        if (jsonMatch) {
+          const parsedData = JSON.parse(jsonMatch[0]) as MacroData;
+          setMacros(parsedData);
+        } else {
+          throw new Error("Could not extract JSON from response");
+        }
+      } else {
+        throw new Error("Invalid response format from API");
+      }
+    } catch (err) {
+      console.error("Error analyzing image:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to analyze image";
+      setError(`Error: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          resolve(reader.result as string);
+        } else {
+          reject(new Error("Failed to read file"));
+        }
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+  
+  const resetAnalysis = () => {
+    setImage(null);
+    setImagePreview(null);
+    setMacros(null);
+    setError(null);
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="p-4 mx-auto max-w-6xl md:p-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 text-center"
-        >
-          <h1 className={`mb-2 text-3xl font-bold md:text-4xl ${gradientText}`}>
-            Food Analysis with AI
-          </h1>
-          <p className="mx-auto max-w-2xl text-gray-600">
-            Take a picture of your food or upload an image to get instant nutritional information
-          </p>
-        </motion.div>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl">Food Macro Analyzer</CardTitle>
+        <CardDescription>Upload or capture a photo of your food to analyze its nutritional content</CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {!captureMode ? (
+          <div className="space-y-4">
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Upload className="w-5 h-5" />
+                Upload Photo
+              </button>
+              <button
+                onClick={startCamera}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Camera className="w-5 h-5" />
+                Take Photo
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-8 mx-auto mb-8 rounded-xl border shadow-xl backdrop-blur-sm bg-white/90 border-white/50"
-        >
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <div className="space-y-6">
-              {/* Camera View */}
-              <AnimatePresence>
-                {showCamera ? (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="relative"
-                  >
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      playsInline 
-                      className="object-cover w-full h-64 bg-black rounded-xl border border-gray-200"
-                    />
-                    <canvas ref={canvasRef} className="hidden" />
-                    
-                    <div className="flex justify-center mt-4 space-x-4">
-                      <motion.button
-                        onClick={captureImage}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex gap-2 items-center px-6 py-3 font-medium text-white bg-gradient-to-r from-purple-600 to-purple-500 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg"
-                      >
-                        <span>Capture</span>
-                        <Camera className="w-5 h-5" />
-                      </motion.button>
-                      
-                      <motion.button
-                        onClick={stopCamera}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex gap-2 items-center px-6 py-3 font-medium text-gray-700 bg-gray-100 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg"
-                      >
-                        <span>Cancel</span>
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-4"
-                  >
-                    {imageBase64 ? (
-                      <div className="relative">
-                        <img 
-                          src={`data:image/jpeg;base64,${imageBase64}`} 
-                          alt="Food" 
-                          className="object-cover w-full h-64 rounded-xl border border-gray-200"
-                        />
-                        <div className="flex absolute inset-0 justify-center items-center">
-                          <motion.button
-                            onClick={() => setImageBase64('')}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-4 py-2 text-white bg-red-500 rounded-lg shadow-md opacity-80 hover:opacity-100"
-                          >
-                            Change Image
-                          </motion.button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-4">
-                        <motion.button
-                          onClick={startCamera}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex gap-3 items-center p-6 text-left text-gray-700 bg-gray-50 rounded-xl border-2 border-gray-300 border-dashed transition-colors hover:border-purple-300 hover:bg-purple-50/50"
-                        >
-                          <div className="p-3 bg-purple-100 rounded-full">
-                            <Camera className="w-6 h-6 text-purple-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold">Take a Photo</h3>
-                            <p className="text-sm text-gray-500">Use your camera to capture food</p>
-                          </div>
-                        </motion.button>
-                        
-                        <motion.button
-                          onClick={triggerFileInput}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="flex gap-3 items-center p-6 text-left text-gray-700 bg-gray-50 rounded-xl border-2 border-gray-300 border-dashed transition-colors hover:border-purple-300 hover:bg-purple-50/50"
-                        >
-                          <div className="p-3 bg-blue-100 rounded-full">
-                            <Upload className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold">Upload Image</h3>
-                            <p className="text-sm text-gray-500">Select a photo from your device</p>
-                          </div>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
-                        </motion.button>
-                      </div>
-                    )}
-                    
-                    {imageBase64 && (
-                      <motion.button
-                        onClick={analyzeFood}
-                        disabled={isAnalyzingImage}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex gap-2 items-center px-6 py-3 w-full font-medium text-white bg-gradient-to-r from-purple-600 to-purple-500 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg disabled:opacity-50"
-                      >
-                        {isAnalyzingImage ? (
-                          <>
-                            <div className="w-5 h-5 rounded-full border-2 border-white animate-spin border-t-transparent" />
-                            <span>Analyzing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Analyze Food</span>
-                            <ArrowRight className="w-5 h-5" />
-                          </>
-                        )}
-                      </motion.button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
-              {error && (
-                <p className="p-3 text-red-500 bg-red-50 rounded-lg">{error}</p>
+            {imagePreview && (
+              <div className="relative">
+                <img 
+                  src={imagePreview} 
+                  alt="Food preview" 
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <button
+                  onClick={resetAnalysis}
+                  className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="relative bg-black rounded-lg h-64 flex items-center justify-center">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-64 object-cover rounded-lg"
+              />
+              {error && captureMode && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 text-white p-4 text-center rounded-lg">
+                  {error}
+                </div>
+              )}
+              {captureMode && !error && !videoRef.current?.srcObject && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-white" />
+                  <span className="ml-2 text-white">Initializing camera...</span>
+                </div>
               )}
             </div>
-            
-            <AnimatePresence>
-              {foodAnalysisResults && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="p-6 space-y-4 rounded-xl shadow-lg bg-white/80"
-                >
-                  <h3 className="text-xl font-semibold text-purple-700">
-                    {foodAnalysisResults.foodName || "Food Analysis"}
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 text-center bg-purple-50 rounded-lg">
-                      <p className="text-sm text-purple-500">Calories</p>
-                      <p className="text-xl font-bold">{foodAnalysisResults.calories || 0} kcal</p>
-                    </div>
-                    <div className="p-3 text-center bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-500">Protein</p>
-                      <p className="text-xl font-bold">{foodAnalysisResults.protein || 0} g</p>
-                    </div>
-                    <div className="p-3 text-center bg-amber-50 rounded-lg">
-                      <p className="text-sm text-amber-500">Carbs</p>
-                      <p className="text-xl font-bold">{foodAnalysisResults.carbs || 0} g</p>
-                    </div>
-                    <div className="p-3 text-center bg-green-50 rounded-lg">
-                      <p className="text-sm text-green-500">Fats</p>
-                      <p className="text-xl font-bold">{foodAnalysisResults.fats || 0} g</p>
-                    </div>
-                  </div>
-                  
-                  {foodAnalysisResults.analysis && (
-                    <div className="p-4 mt-3 text-gray-700 bg-gray-50 rounded-lg">
-                      <p>{foodAnalysisResults.analysis}</p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={capturePhoto}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Camera className="w-5 h-5" />
+                Capture
+              </button>
+              <button
+                onClick={stopCamera}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+                Cancel
+              </button>
+            </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-};
+        )}
 
-export default Macros;
+        {imagePreview && !macros && !loading && (
+          <div className="flex justify-center">
+            <button
+              onClick={analyzeImage}
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Analyze Food
+            </button>
+          </div>
+        )}
+        
+        {loading && (
+          <div className="flex items-center justify-center gap-2 text-blue-600">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Analyzing image...</span>
+          </div>
+        )}
+        
+        {error && !captureMode && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
+        
+        {macros && (
+          <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4 text-center">{macros.food_name}</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600">Calories</div>
+                <div className="text-2xl font-bold text-blue-700">{macros.calories}</div>
+                <div className="text-xs text-gray-500">kcal</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600">Protein</div>
+                <div className="text-2xl font-bold text-green-700">{macros.protein_g}</div>
+                <div className="text-xs text-gray-500">grams</div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600">Carbs</div>
+                <div className="text-2xl font-bold text-yellow-700">{macros.carbs_g}</div>
+                <div className="text-xs text-gray-500">grams</div>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600">Fat</div>
+                <div className="text-2xl font-bold text-red-700">{macros.fat_g}</div>
+                <div className="text-xs text-gray-500">grams</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

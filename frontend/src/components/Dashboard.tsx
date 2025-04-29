@@ -15,6 +15,10 @@ import EditProfile from './EditProfile';
 import Macros from './Macros';
 import MealPlanner from './CustomMealPlan';
 import TwoComponentToggle from './Schedule';
+import Progress from './Progress';
+import ConversationGraphs from './ConversationalGraphs';
+import ProgressCombined from './ProgressCombined';
+import ProfileOverview from './DashboardOverview';
 
 interface DashboardData {
   user: {
@@ -506,6 +510,9 @@ function Dashboard() {
               : activeSection === 'schedule' ? (
                 <TwoComponentToggle />
               )
+              : activeSection === 'progress' ? (
+                <ProgressCombined />
+              )
               : activeSection === 'community' ? (
                 <CommunityWall />
               )
@@ -546,172 +553,7 @@ function Dashboard() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard
-                      title="Current Weight"
-                      value={`${dashboardData.stats.currentWeight} kg`}
-                      change={formatWeightChange(dashboardData.trends.weightChange)}
-                      changeColor={getChangeColor(dashboardData.trends.weightChange, 'weight')}
-                      trendIcon={getTrendIcon(dashboardData.trends.weightChange)}
-                      icon={<LineChart className="h-5 w-5 text-indigo-600" />}
-                    />
-                    <StatCard
-                      title="Current BMI"
-                      value={dashboardData.stats.currentBmi.toString()}
-                      change={formatBmiChange(dashboardData.trends.bmiChange)}
-                      changeColor={getChangeColor(dashboardData.trends.bmiChange, 'bmi')}
-                      trendIcon={getTrendIcon(dashboardData.trends.bmiChange)}
-                      icon={<Activity className="h-5 w-5 text-teal-600" />}
-                    />
-                    <StatCard
-                      title="Daily Calories"
-                      value={`${dashboardData.trends.avgDailyCalories} kcal`}
-                      change="-2% from last week"
-                      changeColor="text-green-500"
-                      trendIcon={<TrendingDown className="ml-1 h-4 w-4" />}
-                      icon={<Flame className="h-5 w-5 text-orange-500" />}
-                    />
-                    <StatCard
-                      title="Meals Today"
-                      value={`${dashboardData.stats.mealsPerDay}`}
-                      change="On Track"
-                      changeColor="text-green-500"
-                      icon={<Utensils className="h-5 w-5 text-purple-600" />}
-                    />
-                  </div>
-
-                  {/* Two column layout for main content */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Nutrition Requirements */}
-                    <div className="lg:col-span-2">
-                      {nutritionReqs && (
-                        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-                          <div className="px-6 py-5 border-b border-gray-100">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <h2 className="text-lg font-semibold text-gray-900">Daily Nutrition Goals</h2>
-                                <p className="mt-1 text-sm text-gray-500">Based on your fitness goals and activity level</p>
-                              </div>
-                              <div>
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                  {dashboardData.stats.fitnessGoal.replace(/-/g, ' ')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="px-6 py-6">
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                              <NutrientCard
-                                title="Calories"
-                                value={nutritionReqs.calories}
-                                unit="kcal"
-                                color="indigo"
-                                icon={<Flame className="h-5 w-5" />}
-                                description="Daily intake"
-                              />
-                              <NutrientCard
-                                title="Protein"
-                                value={nutritionReqs.protein}
-                                unit="g"
-                                color="teal"
-                                icon={<Activity className="h-5 w-5" />}
-                                description="Muscle recovery"
-                              />
-                              <NutrientCard
-                                title="Carbs"
-                                value={nutritionReqs.carbs}
-                                unit="g"
-                                color="amber"
-                                icon={<LineChart className="h-5 w-5" />}
-                                description="Energy source"
-                              />
-                              <NutrientCard
-                                title="Fats"
-                                value={nutritionReqs.fats}
-                                unit="g"
-                                color="rose"
-                                icon={<Utensils className="h-5 w-5" />}
-                                description="Essential nutrients"
-                              />
-                            </div>
-                            <div className="mt-8 bg-indigo-50 rounded-lg p-4">
-                              <div className="flex">
-                                <div className="flex-shrink-0">
-                                  <Flame className="h-5 w-5 text-indigo-600" />
-                                </div>
-                                <div className="ml-3">
-                                  <h3 className="text-sm font-medium text-indigo-800">Calorie Distribution</h3>
-                                  <div className="mt-2 text-sm text-indigo-700">
-                                    <div className="flex items-center">
-                                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div className="bg-indigo-600 h-2.5 rounded-full" style={{width: '35%'}}></div>
-                                      </div>
-                                      <span className="ml-2 text-xs font-medium">35%</span>
-                                    </div>
-                                    <p className="mt-1 text-xs">You've consumed 35% of your daily calorie goal</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* User Profile Information */}
-                    <div className="lg:col-span-1">
-                      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 h-full">
-                        <div className="px-6 py-5 border-b border-gray-100">
-                          <h2 className="text-lg font-semibold text-gray-900">Profile Details</h2>
-                          <p className="mt-1 text-sm text-gray-500">Your personal metrics</p>
-                        </div>
-                        <div className="px-6 py-6">
-                          <dl className="space-y-6">
-                            <ProfileDetail 
-                              label="Age" 
-                              value={`${dashboardData.user.age} years`} 
-                            />
-                            <ProfileDetail 
-                              label="Gender" 
-                              value={dashboardData.user.gender.charAt(0).toUpperCase() + dashboardData.user.gender.slice(1)} 
-                            />
-                            <ProfileDetail 
-                              label="Height" 
-                              value={`${dashboardData.stats.height} cm`} 
-                            />
-                            <ProfileDetail 
-                              label="Diet Type" 
-                              value={dashboardData.stats.dietType.charAt(0).toUpperCase() + dashboardData.stats.dietType.slice(1)} 
-                            />
-                            <ProfileDetail 
-                              label="Fitness Goal" 
-                              value={dashboardData.stats.fitnessGoal.replace(/-/g, ' ')
-                                .split(' ')
-                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                .join(' ')} 
-                            />
-                            <ProfileDetail 
-                              label="Meals per Day" 
-                              value={dashboardData.stats.mealsPerDay.toString()} 
-                            />
-                          </dl>
-                          
-                          <div className="mt-8">
-                            <button
-                              onClick={() => setActiveSection('profile')}
-                              className="w-full flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                            >
-                              <User className="h-4 w-4 mr-2" />
-                              Update Profile
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    <ProfileOverview />      
                 </div>
               )}
             </div>
