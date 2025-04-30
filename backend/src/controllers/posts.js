@@ -79,7 +79,7 @@ exports.deletePost = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this post' });
     }
 
-    await post.remove();
+    await post.deleteOne(); // ✅ modern and supported
     
     res.status(200).json({ message: 'Post deleted successfully' });
   } catch (error) {
