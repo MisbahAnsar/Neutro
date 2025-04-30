@@ -260,7 +260,7 @@ function Dashboard() {
             <Link to="/">
               <div className="flex items-center">
                 <Flame className="h-8 w-8 text-white" />
-                <span className="ml-3 text-xl font-bold text-white">Neutro</span>
+                <span className="ml-3 text-xl font-bold text-white">Nutri Guide</span>
               </div>
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="text-white hover:text-gray-200">
@@ -272,7 +272,7 @@ function Dashboard() {
           <Link to="/">
           <div className="hidden lg:flex items-center px-6 py-6">
             <Flame className="h-8 w-8 text-white" />
-            <span className="ml-3 text-2xl font-bold text-white">Neutro</span>
+            <span className="ml-3 text-2xl font-bold text-white">Nutri Guide</span>
           </div>
           </Link>
           {/* User profile in sidebar */}
