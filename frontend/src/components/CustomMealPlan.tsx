@@ -243,14 +243,15 @@ const MealPlanner: React.FC = () => {
   }, []);
 
   // Set initial selected date when meal plans load
-  useEffect(() => {
-    if (mealPlans.length > 0 && mealPlans[0].days.length > 0) {
-      const firstDay = mealPlans[0].days[0];
-      const date = firstDay.date ? new Date(firstDay.date) : new Date();
-      setSelectedDate(date);
-      setSelectedDayNumber(firstDay.dayNumber);
-    }
-  }, [mealPlans]);
+ // Set initial selected date when meal plans load
+useEffect(() => {
+  if (mealPlans.length > 0 && mealPlans[0].days.length > 0 && !selectedDayNumber) {
+    const firstDay = mealPlans[0].days[0];
+    const date = firstDay.date ? new Date(firstDay.date) : new Date();
+    setSelectedDate(date);
+    setSelectedDayNumber(firstDay.dayNumber);
+  }
+}, [mealPlans]);
 
   // Get current day based on selected day number
   const getCurrentDay = () => {
@@ -324,7 +325,7 @@ const MealPlanner: React.FC = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Update local state to reflect the change
+      // Update local state to reflect the change while preserving the selected day
       setMealPlans(mealPlans.map(plan => {
         if (plan._id === planId) {
           return {

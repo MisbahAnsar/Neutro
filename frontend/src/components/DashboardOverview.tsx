@@ -164,7 +164,6 @@ const ProfileOverview = () => {
             items={[
               { label: 'Primary Goal', value: profile.fitnessGoal },
               { label: 'Daily Calories', value: dailyCalories.toFixed(0) },
-              { label: 'Target Weight', value: `${getTargetWeight(profile)} kg` },
               { label: 'Target BMI', value: getTargetBmi(profile).toFixed(1) }
             ]}
             icon="🏋️"
@@ -281,10 +280,6 @@ const ProfileOverview = () => {
             <div className="p-4 bg-green-50 rounded-lg border border-green-100">
               <h4 className="font-bold text-green-800 mb-2">Diet Plan</h4>
               <p className="text-green-700">{capitalizeFirstLetter(profile.dietType)} diet with {profile.mealsPerDay} meals per day</p>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
-              <h4 className="font-bold text-purple-800 mb-2">Progress Tracking</h4>
-              <p className="text-purple-700">Target: {getTargetWeight(profile)} kg ({getTargetBmi(profile).toFixed(1)} BMI) in {profile.planDuration} days</p>
             </div>
           </div>
         </div>

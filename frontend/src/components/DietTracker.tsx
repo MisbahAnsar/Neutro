@@ -216,7 +216,13 @@ const DietTrackerComponent: React.FC = () => {
   useEffect(() => {
     if (Dietplanss.length && Dietplanss[0]?.createdAt) {
       const planStartDate = new Date(Dietplanss[0].createdAt);
-      setCurrentMonth(new Date(planStartDate.getFullYear(), planStartDate.getMonth(), 1));
+      // Create a date-only version (ignoring time)
+      const planStartDateOnly = new Date(
+        planStartDate.getFullYear(),
+        planStartDate.getMonth(),
+        planStartDate.getDate()
+      );
+      setCurrentMonth(new Date(planStartDateOnly));
     }
   }, [Dietplanss]);
 
@@ -382,10 +388,16 @@ const DietTrackerComponent: React.FC = () => {
         </div>
       );
     }
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const planStartDate = new Date(Dietplanss[0].createdAt);
-    const dayNumber = getDayNumberForDate(date);
-    const isInMealPlan = isDateInMealPlan(date);
-    const isToday = date.toDateString() === new Date().toDateString();
+    const planStartDateOnly = new Date(
+      planStartDate.getFullYear(),
+      planStartDate.getMonth(),
+      planStartDate.getDate()
+    );
+    const dayNumber = getDayNumberForDate(dateOnly);
+    const isInMealPlan = isDateInMealPlan(dateOnly);
+    const isToday = dateOnly.toDateString() === new Date().toDateString();
     const dayTracker = dietTracker?.dailyTrackers.find(dt => dt.dayNumber === dayNumber);
     
     const isAllEaten = dayNumber !== null && eatenCompletedDays.includes(dayNumber);
@@ -708,20 +720,30 @@ const MEAL_REMINDERS: MealReminder[] = [
 
   const isDateInMealPlan = (date: Date) => {
     if (!Dietplanss.length || !Dietplanss[0]?.createdAt || !Dietplanss[0]?.planDuration) return false;
-
-    // if (!dietTracker?.startDate) return false;
+  
+    // Create a date-only version of the start date (ignoring time)
     const startDate = new Date(Dietplanss[0].createdAt);
-    const endDate = new Date(startDate);
+    const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    
+    // Create date-only version of the input date
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    // Calculate end date (start date + duration - 1 day)
+    const endDate = new Date(startDateOnly);
     endDate.setDate(endDate.getDate() + (Dietplanss[0].planDuration - 1));
     
-    return date >= startDate && date <= endDate;
+    return dateOnly >= startDateOnly && dateOnly <= endDate;
   };
 
   const getDayNumberForDate = (date: Date) => {
     if (!Dietplanss.length || !Dietplanss[0]?.createdAt || !Dietplanss[0]?.planDuration) return null;
     
+    // Create date-only versions for comparison
     const startDate = new Date(Dietplanss[0].createdAt);
-    const diffTime = date.getTime() - startDate.getTime();
+    const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const diffTime = dateOnly.getTime() - startDateOnly.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
     return diffDays > 0 && diffDays <= Dietplanss[0].planDuration ? diffDays : null;

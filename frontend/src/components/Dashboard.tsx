@@ -4,7 +4,9 @@ import axios from 'axios';
 import { 
   Home, Activity, Calendar, User, LineChart, Flame, Utensils, 
   LogOut, ChevronRight, Bell, Search, TrendingDown, TrendingUp, 
-  Menu, X, ChevronDown, Settings
+  Menu, X, ChevronDown, Settings,
+  MessageCircle,
+  Hotel
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DietPlanner from './DietPlanner';
@@ -360,7 +362,7 @@ function Dashboard() {
                   }}
                 />
                 <NavItem 
-                  icon={<LineChart size={20} />} 
+                  icon={<Hotel size={20} />} 
                   text="Macros Tracker" 
                   active={activeSection === 'macros'} 
                   onClick={() => {
@@ -377,7 +379,7 @@ function Dashboard() {
               </p>
               <div className="mt-2 space-y-1">
                 <NavItem 
-                  icon={<Settings size={20} />} 
+                  icon={<MessageCircle size={20} />} 
                   text="Community Wall" 
                   active={activeSection === 'community'} 
                   onClick={() => {
@@ -388,7 +390,7 @@ function Dashboard() {
               </div>
               <div className="mt-2 space-y-1">
                 <NavItem 
-                  icon={<Settings size={20} />} 
+                  icon={<User size={20} />} 
                   text="Edit Profile" 
                   active={activeSection === 'editprofile'} 
                   onClick={() => {
